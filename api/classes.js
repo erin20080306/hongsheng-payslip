@@ -56,21 +56,23 @@ export default async function handler(req, res) {
       // 第一列是標題
       const headers = rows[0] || [];
       
-      // 找出日期格式的欄位索引（如 2/16, 2/17 等）
-      const dateColumns = [];
-      for (let j = 0; j < headers.length; j++) {
+      // 從 E 欄（索引 4）開始，只取有表頭的欄位
+      const dataColumns = [];
+      for (let j = 4; j < headers.length; j++) {
         const h = (headers[j] || '').toString().trim();
-        // 檢查是否為日期格式
-        if (/^\d{1,2}\/\d{1,2}$/.test(h) || /^\d{1,2}-\d{1,2}$/.test(h)) {
-          dateColumns.push({ index: j, header: h });
+        // 只有表頭有資料才加入
+        if (h) {
+          dataColumns.push({ index: j, header: h });
         }
       }
       
-      // 如果沒有日期欄位，跳過這個分頁
-      if (dateColumns.length === 0) continue;
+      // 如果沒有資料欄位，跳過這個分頁
+      if (dataColumns.length === 0) continue;
       
       // 搜尋姓名符合的列（只取第一筆，避免重複）
       let foundRow = null;
+      let warehouse = ''; // 倉別
+      
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         // 搜尋整列找姓名
@@ -78,13 +80,15 @@ export default async function handler(req, res) {
         
         if (nameIndex !== -1) {
           foundRow = row;
+          // 假設倉別在 D 欄（索引 3）
+          warehouse = (row[3] || '').toString().trim();
           break; // 只取第一筆
         }
       }
 
       if (foundRow) {
-        // 只取日期欄位的資料
-        const registrations = dateColumns.map(col => ({
+        // 從 E 欄開始取資料，只取有表頭的欄位
+        const registrations = dataColumns.map(col => ({
           date: col.header,
           value: (foundRow[col.index] || '').toString().trim(),
           registered: (foundRow[col.index] || '').toString().toLowerCase().includes('v')
@@ -92,6 +96,7 @@ export default async function handler(req, res) {
 
         results.push({
           sheetName: sheetTitle,
+          warehouse: warehouse,
           registrations
         });
       }

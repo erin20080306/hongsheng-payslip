@@ -491,6 +491,11 @@ function App() {
                   <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <CalendarCheck size={20} className="text-green-600" />
                     {sheet.sheetName}
+                    {sheet.warehouse && (
+                      <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded-lg">
+                        {sheet.warehouse}
+                      </span>
+                    )}
                   </h3>
                   
                   {/* 日期報班格式顯示 */}
