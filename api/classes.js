@@ -59,16 +59,18 @@ export default async function handler(req, res) {
       
       // 根據分頁設定欄位對應
       // 酷澎：B欄=姓名(索引1), J欄=倉別(索引9)
-      // 蝦皮：J欄=姓名(索引9), H欄=倉別(索引7)
-      let nameColIndex, warehouseColIndex, infoStartCol, infoEndCol;
+      // 蝦皮：J欄=姓名(索引9), E欄+H欄=倉別(索引4+7)
+      let nameColIndex, warehouseColIndex, warehouseColIndex2, infoStartCol, infoEndCol;
       if (sheetTitle === '酷澎') {
         nameColIndex = 1;      // B欄
         warehouseColIndex = 9; // J欄
+        warehouseColIndex2 = null;
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else if (sheetTitle === '蝦皮') {
         nameColIndex = 9;      // J欄
-        warehouseColIndex = 7; // H欄
+        warehouseColIndex = 4; // E欄 (倉別1)
+        warehouseColIndex2 = 7; // H欄 (倉別2)
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else {
@@ -106,8 +108,12 @@ export default async function handler(req, res) {
         
         // 姓名欄包含搜尋的姓名
         if (nameValue.includes(name)) {
-          // 取得倉別值
-          const warehouseValue = (row[warehouseColIndex] || '').toString().trim();
+          // 取得倉別值（蝦皮使用 E+H 組合）
+          let warehouseValue = (row[warehouseColIndex] || '').toString().trim();
+          if (warehouseColIndex2 !== null) {
+            const warehouse2 = (row[warehouseColIndex2] || '').toString().trim();
+            warehouseValue = warehouseValue + (warehouse2 ? '-' + warehouse2 : '');
+          }
           
           // 每個倉別只保留第一筆
           if (!warehouseMap.has(warehouseValue)) {
