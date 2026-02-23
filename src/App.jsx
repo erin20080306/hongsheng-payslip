@@ -345,6 +345,14 @@ function App() {
         {/* 選擇薪資單 */}
         {step === 'options' && options && (
           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[40px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] border border-white">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-2 mb-6 text-slate-500 hover:text-blue-600 font-bold transition-colors"
+            >
+              <ArrowLeft size={18} />
+              <span>返回</span>
+            </button>
+            
             <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-2 text-center">選擇薪資單</h2>
             <p className="text-slate-400 text-sm font-medium text-center mb-8">員工：{name}</p>
             
@@ -370,10 +378,10 @@ function App() {
 
             <button
               onClick={handleLogout}
-              className="mt-6 w-full flex items-center justify-center gap-2 py-4 border-2 border-slate-100 rounded-2xl text-slate-400 font-bold hover:border-blue-600 hover:text-blue-600 transition-all"
+              className="mt-6 w-full flex items-center justify-center gap-2 py-4 border-2 border-slate-100 rounded-2xl text-slate-400 font-bold hover:border-red-400 hover:text-red-500 transition-all"
             >
               <LogOut size={18} />
-              <span className="tracking-wider">重新登入</span>
+              <span className="tracking-wider">登出</span>
             </button>
           </div>
         )}
