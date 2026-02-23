@@ -65,35 +65,30 @@ export default async function handler(req, res) {
 
     const keysMap = new Map();
 
-    for (const sheetTitle of dateSheets) {
-      try {
-        const response = await sheets.spreadsheets.values.get({
-          spreadsheetId: SHEET_B_ID,
-          range: `'${sheetTitle}'!A:Z`,
-        });
+    // 使用 batchGet 一次取得所有分頁的 B 欄資料，減少 API 請求次數
+    const ranges = dateSheets.map(title => `'${title}'!A:B`);
+    
+    try {
+      const batchResponse = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId: SHEET_B_ID,
+        ranges: ranges,
+      });
 
-        const rows = response.data.values || [];
+      const valueRanges = batchResponse.data.valueRanges || [];
+      
+      for (let idx = 0; idx < valueRanges.length; idx++) {
+        const sheetTitle = dateSheets[idx];
+        const rows = valueRanges[idx].values || [];
         if (rows.length === 0) continue;
-
-        const headerRow = rows[0];
-        const nameColIndex = findNameColumnIndex(headerRow, rows);
 
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          let found = false;
-          let aKey = '';
-
-          // 主要檢查 B 欄 (index 1)，用「包含」來比對姓名
           const colA = (row[0] || '').toString().trim();
           const colB = (row[1] || '').toString().trim();
           
-          // 如果 B 欄包含姓名，或姓名欄包含姓名
-          if (colB.includes(name) || (nameColIndex >= 0 && (row[nameColIndex] || '').toString().includes(name))) {
-            found = true;
-            aKey = colA || name;
-          }
-
-          if (found) {
+          // B 欄包含姓名
+          if (colB.includes(name)) {
+            const aKey = colA || name;
             if (!keysMap.has(aKey)) keysMap.set(aKey, []);
             if (!keysMap.get(aKey).includes(sheetTitle)) {
               keysMap.get(aKey).push(sheetTitle);
@@ -101,9 +96,10 @@ export default async function handler(req, res) {
             break;
           }
         }
-      } catch (err) {
-        console.error(`Error reading sheet ${sheetTitle}:`, err.message);
       }
+    } catch (err) {
+      console.error('Batch get error:', err.message);
+      return res.status(500).json({ error: '系統錯誤：' + err.message });
     }
 
     const keys = Array.from(keysMap.entries()).map(([aKey, dates]) => ({
