@@ -56,39 +56,41 @@ export default async function handler(req, res) {
       // 第一列是標題
       const headers = rows[0] || [];
       
-      // 搜尋姓名符合的列（搜尋整列）
+      // 找出姓名欄位的索引（搜尋整列）
+      // 搜尋姓名符合的所有列
+      const matchedRows = [];
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
+        // 搜尋整列找姓名
         const nameIndex = row.findIndex(cell => cell && cell.toString().trim() === name);
         
         if (nameIndex !== -1) {
-          // 找到姓名，返回整列資料作為表格
-          const tableData = [];
+          // 找到姓名，取得 E 欄 (index 4) 以後的資料
+          const rowData = {};
           
-          // 從 E 欄 (index 4) 開始取資料
           for (let j = 4; j < Math.max(row.length, headers.length); j++) {
-            const headerValue = (headers[j] || '').toString().trim();
+            const headerText = (headers[j] || '').toString().trim();
             const cellValue = (row[j] || '').toString().trim();
-            
-            // 只顯示有表頭的欄位
-            if (headerValue) {
-              tableData.push({
-                header: headerValue,
-                value: cellValue,
-                registered: cellValue.toLowerCase().includes('v')
-              });
+            if (headerText) {
+              rowData[headerText] = cellValue;
             }
           }
-
-          if (tableData.length > 0) {
-            results.push({
-              sheetName: sheetTitle,
-              headers: headers.slice(4).filter(h => h), // E欄以後的表頭
-              tableData
-            });
-          }
-          break; // 找到就跳出
+          
+          matchedRows.push({
+            data: rowData
+          });
         }
+      }
+
+      // E 欄以後的表頭
+      const displayHeaders = headers.slice(4).filter(h => h).map(h => h.toString().trim());
+
+      if (matchedRows.length > 0 && displayHeaders.length > 0) {
+        results.push({
+          sheetName: sheetTitle,
+          headers: displayHeaders,
+          rows: matchedRows
+        });
       }
     }
 

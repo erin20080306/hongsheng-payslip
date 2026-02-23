@@ -471,33 +471,29 @@ function App() {
                   
                   {/* 表格顯示 */}
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="bg-slate-200">
-                          <th className="px-3 py-2 text-left font-bold text-slate-700">日期</th>
-                          <th className="px-3 py-2 text-center font-bold text-slate-700">狀態</th>
-                          <th className="px-3 py-2 text-left font-bold text-slate-700">備註</th>
+                          {sheet.headers?.map((h, hi) => (
+                            <th key={hi} className="px-3 py-2 text-left font-bold text-slate-700 border border-slate-300 whitespace-nowrap">{h}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {sheet.tableData?.map((item, i) => (
-                          <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                            <td className="px-3 py-2 font-medium text-slate-800">{item.header}</td>
-                            <td className="px-3 py-2 text-center">
-                              {item.registered ? (
-                                <CheckCircle size={18} className="mx-auto text-green-600" />
-                              ) : item.value ? (
-                                <span className="text-slate-500">{item.value}</span>
-                              ) : (
-                                <XCircle size={18} className="mx-auto text-slate-300" />
-                              )}
-                            </td>
-                            <td className="px-3 py-2 text-slate-600">{item.value || '-'}</td>
+                        {sheet.rows?.map((row, ri) => (
+                          <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                            {sheet.headers?.map((h, hi) => (
+                              <td key={hi} className="px-3 py-2 text-slate-700 border border-slate-200 whitespace-nowrap">
+                                {row.data?.[h] || '-'}
+                              </td>
+                            ))}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                  
+                  <p className="mt-3 text-sm text-slate-500">共 {sheet.rows?.length || 0} 筆報班紀錄</p>
                 </div>
               ))}
             </div>
