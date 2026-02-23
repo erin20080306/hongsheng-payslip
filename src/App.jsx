@@ -294,6 +294,54 @@ function App() {
           </div>
         )}
 
+        {/* 功能選單 */}
+        {step === 'menu' && (
+          <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[40px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] border border-white">
+            <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-2 text-center">歡迎回來</h2>
+            <p className="text-slate-400 text-sm font-medium text-center mb-8">{name}</p>
+            
+            <div className="space-y-4">
+              <button
+                onClick={handleGoToPayslip}
+                disabled={loading}
+                className="w-full flex items-center gap-4 p-5 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-2xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 group"
+              >
+                <div className="w-12 h-12 bg-blue-100 group-hover:bg-white/20 rounded-xl flex items-center justify-center">
+                  <Wallet size={24} className="text-blue-600 group-hover:text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="text-lg">薪資查詢</div>
+                  <div className="text-sm opacity-60 font-normal">查看您的薪資單</div>
+                </div>
+                <ArrowRight size={20} className="ml-auto opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              </button>
+
+              <button
+                onClick={handleGoToClasses}
+                disabled={loading}
+                className="w-full flex items-center gap-4 p-5 bg-slate-50 hover:bg-green-600 hover:text-white rounded-2xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 group"
+              >
+                <div className="w-12 h-12 bg-green-100 group-hover:bg-white/20 rounded-xl flex items-center justify-center">
+                  <CalendarCheck size={24} className="text-green-600 group-hover:text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="text-lg">報班查詢</div>
+                  <div className="text-sm opacity-60 font-normal">查看報班紀錄</div>
+                </div>
+                <ArrowRight size={20} className="ml-auto opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              </button>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="mt-8 w-full flex items-center justify-center gap-2 py-4 border-2 border-slate-100 rounded-2xl text-slate-400 font-bold hover:border-red-400 hover:text-red-500 transition-all"
+            >
+              <LogOut size={18} />
+              <span className="tracking-wider">登出</span>
+            </button>
+          </div>
+        )}
+
         {/* 選擇薪資單 */}
         {step === 'options' && options && (
           <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[40px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] border border-white">
@@ -387,6 +435,64 @@ function App() {
             </div>
 
             {/* 底部登出 */}
+            <div className="p-6 border-t border-slate-100 no-print">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 py-4 border-2 border-slate-100 rounded-2xl text-slate-400 font-bold hover:border-red-400 hover:text-red-500 transition-all"
+              >
+                <LogOut size={18} />
+                <span className="tracking-wider">登出</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 報班查詢結果 */}
+        {step === 'classes' && classesData && (
+          <div className="bg-white/80 backdrop-blur-xl rounded-[40px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] border border-white overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center gap-3 no-print">
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-blue-600 font-bold transition-colors"
+              >
+                <ArrowLeft size={18} />
+                <span>返回</span>
+              </button>
+              <h2 className="text-xl font-black text-slate-900">報班紀錄</h2>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {classesData.map((sheet, idx) => (
+                <div key={idx} className="bg-slate-50 rounded-2xl p-5">
+                  <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <CalendarCheck size={20} className="text-green-600" />
+                    {sheet.sheetName}
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {sheet.registrations.map((reg, i) => (
+                      <div
+                        key={i}
+                        className={`p-3 rounded-xl text-center ${
+                          reg.registered
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        <div className="text-sm font-bold">{reg.date}</div>
+                        <div className="mt-1">
+                          {reg.registered ? (
+                            <CheckCircle size={20} className="mx-auto text-green-600" />
+                          ) : (
+                            <XCircle size={20} className="mx-auto text-slate-400" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="p-6 border-t border-slate-100 no-print">
               <button
                 onClick={handleLogout}
