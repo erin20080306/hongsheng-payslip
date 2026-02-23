@@ -83,21 +83,14 @@ export default async function handler(req, res) {
           let found = false;
           let aKey = '';
 
-          if (nameColIndex >= 0) {
-            // 使用找到的姓名欄
-            const cellValue = (row[nameColIndex] || '').toString().trim();
-            if (cellValue === name) {
-              found = true;
-              aKey = (row[0] || '').toString().trim() || name;
-            }
-          } else {
-            // 檢查 A 欄和 B 欄
-            const colA = (row[0] || '').toString().trim();
-            const colB = (row[1] || '').toString().trim();
-            if (colA === name || colB === name) {
-              found = true;
-              aKey = colA || name;
-            }
+          // 主要檢查 B 欄 (index 1)，用「包含」來比對姓名
+          const colA = (row[0] || '').toString().trim();
+          const colB = (row[1] || '').toString().trim();
+          
+          // 如果 B 欄包含姓名，或姓名欄包含姓名
+          if (colB.includes(name) || (nameColIndex >= 0 && (row[nameColIndex] || '').toString().includes(name))) {
+            found = true;
+            aKey = colA || name;
           }
 
           if (found) {
