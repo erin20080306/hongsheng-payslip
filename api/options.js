@@ -1,21 +1,32 @@
-import { getSheetsClient } from './sheets/auth.js';
-
-const SHEET_B_ID = process.env.SHEET_B_ID || '1EBYVvYLQEe01H3ZDX1yozz_3S5o4_r6tGR479U5Fhjc';
+import { google } from 'googleapis';
 
 // Check if sheet name contains date pattern (e.g., 2-19, 0219, 02-19)
 function isDateSheet(sheetName) {
-  // Match patterns like: 2-19, 02-19, 0219, 219
   const patterns = [
-    /^\d{1,2}-\d{1,2}$/,      // 2-19, 02-19
-    /^\d{3,4}$/,              // 219, 0219
-    /\d{1,2}-\d{1,2}/,        // contains 2-19
-    /\d{3,4}/                 // contains 0219
+    /^\d{1,2}-\d{1,2}$/,
+    /^\d{3,4}$/,
+    /\d{1,2}-\d{1,2}/,
+    /\d{3,4}/
   ];
   return patterns.some(p => p.test(sheetName));
 }
 
+// 找出姓名欄位的索引（從表頭或 A/B 欄）
+function findNameColumnIndex(headerRow, rows) {
+  // 先檢查表頭是否有「姓名」
+  if (headerRow) {
+    for (let i = 0; i < headerRow.length; i++) {
+      const h = (headerRow[i] || '').toString().trim();
+      if (h === '姓名' || h.includes('姓名') || h === 'name' || h === 'Name') {
+        return i;
+      }
+    }
+  }
+  // 預設檢查 A 欄 (0) 和 B 欄 (1)
+  return -1; // 表示要檢查 A 和 B 欄
+}
+
 export default async function handler(req, res) {
-  // No cache headers
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -25,50 +36,72 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { name } = req.body;
+    let body = req.body;
+    if (typeof body === 'string') body = JSON.parse(body);
+    const name = (body?.name || '').trim();
 
     if (!name) {
       return res.status(400).json({ error: '請提供姓名' });
     }
 
-    const sheets = getSheetsClient();
-
-    // Get all sheet names from Sheet B
-    const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: SHEET_B_ID,
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
 
+    const sheets = google.sheets({ version: 'v4', auth });
+    const SHEET_B_ID = process.env.SHEET_B_ID;
+
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_B_ID });
     const allSheets = spreadsheet.data.sheets || [];
-    const dateSheets = allSheets
-      .map(s => s.properties.title)
-      .filter(isDateSheet);
+    const dateSheets = allSheets.map(s => s.properties.title).filter(isDateSheet);
 
     if (dateSheets.length === 0) {
       return res.status(200).json({ keys: [], error: '找不到符合日期格式的分頁' });
     }
 
-    // For each date sheet, find the row with matching name and get A column value
-    const keysMap = new Map(); // aKey -> dates[]
+    const keysMap = new Map();
 
     for (const sheetTitle of dateSheets) {
       try {
         const response = await sheets.spreadsheets.values.get({
           spreadsheetId: SHEET_B_ID,
-          range: `'${sheetTitle}'!A:B`,
+          range: `'${sheetTitle}'!A:Z`,
         });
 
         const rows = response.data.values || [];
-        
-        for (const row of rows) {
-          const colA = (row[0] || '').toString().trim();
-          const colB = (row[1] || '').toString().trim();
-          
-          // Check if name matches (in column B or any column that contains the name)
-          if (colB === name.trim() || colA === name.trim()) {
-            const aKey = colA || name;
-            if (!keysMap.has(aKey)) {
-              keysMap.set(aKey, []);
+        if (rows.length === 0) continue;
+
+        const headerRow = rows[0];
+        const nameColIndex = findNameColumnIndex(headerRow, rows);
+
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          let found = false;
+          let aKey = '';
+
+          if (nameColIndex >= 0) {
+            // 使用找到的姓名欄
+            const cellValue = (row[nameColIndex] || '').toString().trim();
+            if (cellValue === name) {
+              found = true;
+              aKey = (row[0] || '').toString().trim() || name;
             }
+          } else {
+            // 檢查 A 欄和 B 欄
+            const colA = (row[0] || '').toString().trim();
+            const colB = (row[1] || '').toString().trim();
+            if (colA === name || colB === name) {
+              found = true;
+              aKey = colA || name;
+            }
+          }
+
+          if (found) {
+            if (!keysMap.has(aKey)) keysMap.set(aKey, []);
             if (!keysMap.get(aKey).includes(sheetTitle)) {
               keysMap.get(aKey).push(sheetTitle);
             }
@@ -92,6 +125,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ keys });
   } catch (error) {
     console.error('Options error:', error);
-    return res.status(500).json({ error: '系統錯誤，請稍後再試' });
+    return res.status(500).json({ error: '系統錯誤：' + error.message });
   }
 }

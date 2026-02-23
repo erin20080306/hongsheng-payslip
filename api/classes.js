@@ -7,7 +7,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { name } = req.body;
+  let body = req.body;
+  if (typeof body === 'string') body = JSON.parse(body);
+  const name = (body?.name || '').trim();
 
   if (!name) {
     return res.status(400).json({ error: '請提供姓名' });
@@ -25,7 +27,6 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.SHEET_C_ID;
 
-    // 取得所有分頁
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     const allSheets = spreadsheet.data.sheets || [];
 
@@ -44,7 +45,6 @@ export default async function handler(req, res) {
     for (const sheet of targetSheets) {
       const sheetTitle = sheet.properties.title;
       
-      // 讀取分頁資料 (A:Z)
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
         range: `'${sheetTitle}'!A:Z`,
@@ -56,37 +56,38 @@ export default async function handler(req, res) {
       // 第一列是標題
       const headers = rows[0] || [];
       
-      // 搜尋姓名符合的列
+      // 搜尋姓名符合的列（搜尋整列）
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        // 假設姓名在某欄，需要搜尋整列找姓名
-        const nameIndex = row.findIndex(cell => cell && cell.toString().trim() === name.trim());
+        const nameIndex = row.findIndex(cell => cell && cell.toString().trim() === name);
         
         if (nameIndex !== -1) {
-          // 找到姓名，取得 E 欄以後的資料
-          const eIndex = 4; // E 欄是 index 4
-          const registrations = [];
+          // 找到姓名，返回整列資料作為表格
+          const tableData = [];
           
-          for (let j = eIndex; j < row.length; j++) {
-            const cellValue = row[j];
-            const headerValue = headers[j] || `欄位${j + 1}`;
+          // 從 E 欄 (index 4) 開始取資料
+          for (let j = 4; j < Math.max(row.length, headers.length); j++) {
+            const headerValue = (headers[j] || '').toString().trim();
+            const cellValue = (row[j] || '').toString().trim();
             
-            // 如果有打 v 或 V，表示已報名
-            if (cellValue && (cellValue.toString().toLowerCase().includes('v') || cellValue.toString().trim() !== '')) {
-              registrations.push({
-                date: headerValue,
-                registered: cellValue.toString().toLowerCase().includes('v'),
-                value: cellValue
+            // 只顯示有表頭的欄位
+            if (headerValue) {
+              tableData.push({
+                header: headerValue,
+                value: cellValue,
+                registered: cellValue.toLowerCase().includes('v')
               });
             }
           }
 
-          if (registrations.length > 0) {
+          if (tableData.length > 0) {
             results.push({
               sheetName: sheetTitle,
-              registrations
+              headers: headers.slice(4).filter(h => h), // E欄以後的表頭
+              tableData
             });
           }
+          break; // 找到就跳出
         }
       }
     }
@@ -99,6 +100,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Classes API error:', error);
-    return res.status(500).json({ error: '伺服器錯誤，請稍後再試' });
+    return res.status(500).json({ error: '伺服器錯誤：' + error.message });
   }
 }

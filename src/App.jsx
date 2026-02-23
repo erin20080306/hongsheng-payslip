@@ -468,26 +468,35 @@ function App() {
                     <CalendarCheck size={20} className="text-green-600" />
                     {sheet.sheetName}
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {sheet.registrations.map((reg, i) => (
-                      <div
-                        key={i}
-                        className={`p-3 rounded-xl text-center ${
-                          reg.registered
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-slate-100 text-slate-500'
-                        }`}
-                      >
-                        <div className="text-sm font-bold">{reg.date}</div>
-                        <div className="mt-1">
-                          {reg.registered ? (
-                            <CheckCircle size={20} className="mx-auto text-green-600" />
-                          ) : (
-                            <XCircle size={20} className="mx-auto text-slate-400" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                  
+                  {/* 表格顯示 */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-200">
+                          <th className="px-3 py-2 text-left font-bold text-slate-700">日期</th>
+                          <th className="px-3 py-2 text-center font-bold text-slate-700">狀態</th>
+                          <th className="px-3 py-2 text-left font-bold text-slate-700">備註</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sheet.tableData?.map((item, i) => (
+                          <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                            <td className="px-3 py-2 font-medium text-slate-800">{item.header}</td>
+                            <td className="px-3 py-2 text-center">
+                              {item.registered ? (
+                                <CheckCircle size={18} className="mx-auto text-green-600" />
+                              ) : item.value ? (
+                                <span className="text-slate-500">{item.value}</span>
+                              ) : (
+                                <XCircle size={18} className="mx-auto text-slate-300" />
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-slate-600">{item.value || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               ))}
