@@ -16,30 +16,28 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 讀取 raw body
     let body = req.body;
     
-    // Debug logging
-    console.log('Raw body type:', typeof body);
-    console.log('Raw body:', JSON.stringify(body));
-    
+    // 如果 body 是 string，嘗試解析
     if (typeof body === 'string') {
       try {
         body = JSON.parse(body);
       } catch (e) {
-        console.error('JSON parse error:', e);
+        // 忽略解析錯誤
       }
     }
+    
+    // 確保 body 是物件
     if (!body || typeof body !== 'object') {
       body = {};
     }
-    const name = body.name || '';
-    const idNumber = body.idNumber || '';
     
-    console.log('Parsed name:', name);
-    console.log('Parsed idNumber:', idNumber);
+    const name = (body.name || '').toString().trim();
+    const idNumber = (body.idNumber || '').toString().trim();
 
     if (!name || !idNumber) {
-      return res.status(400).json({ ok: false, error: '請輸入姓名與身分證號', debug: { bodyType: typeof req.body, body: req.body } });
+      return res.status(400).json({ ok: false, error: '請輸入姓名與身分證號' });
     }
 
     // Check env vars
