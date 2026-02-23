@@ -495,12 +495,12 @@ function App() {
                   
                   {/* E-J 欄資訊（S 前綴） */}
                   {sheet.info && sheet.info.length > 0 && (
-                    <div className="mb-4 p-3 bg-blue-50 rounded-xl">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="mb-4 p-4 bg-blue-50 rounded-xl">
+                      <div className="grid grid-cols-3 gap-3 text-sm">
                         {sheet.info.map((item, i) => (
-                          <div key={i} className="flex justify-between">
-                            <span className="text-slate-500">{item.label}:</span>
-                            <span className="font-bold text-slate-700">{item.value || '-'}</span>
+                          <div key={i} className="text-center">
+                            <div className="text-slate-400 text-xs mb-1">{item.label.replace(/\n/g, ' ')}</div>
+                            <div className="font-bold text-slate-800">{item.value || '-'}</div>
                           </div>
                         ))}
                       </div>
