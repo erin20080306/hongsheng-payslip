@@ -259,6 +259,7 @@ function App() {
         setError(data.error);
       } else {
         setOptions(data);
+        // 管理者查詢時，將 searchName 設為當前查詢的姓名
         setName(searchName.trim());
         setStep('options');
       }

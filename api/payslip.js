@@ -58,13 +58,14 @@ export default async function handler(req, res) {
       const colA = (row[0] || '').toString().trim();
       const colB = (row[1] || '').toString().trim();
 
-      // Match by aKey (column A) or by name in column B (using includes)
-      if (aKey && colA.includes(aKey.trim())) {
+      // 優先使用 aKey 精確匹配 A 欄
+      if (aKey && colA === aKey.trim()) {
         targetRow = row;
         rowIndex = i;
         break;
       }
-      if (name && colB.includes(name.trim())) {
+      // 其次使用 name 精確匹配 B 欄
+      if (name && colB === name.trim()) {
         targetRow = row;
         rowIndex = i;
         break;
