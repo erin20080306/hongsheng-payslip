@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
-import { User, ShieldCheck, ArrowRight, Sparkles, ArrowLeft, Printer, Download, LogOut, Wallet, CalendarCheck, CheckCircle, XCircle } from 'lucide-react';
+import { User, ShieldCheck, ArrowRight, Sparkles, ArrowLeft, Printer, Download, LogOut, Wallet, CalendarCheck, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 
 const API_BASE = '';
 
@@ -18,9 +18,30 @@ function App() {
   const payslipRef = useRef(null);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
-    }
+    // 自動檢查更新
+    const checkForUpdates = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          // 檢查是否有新版本
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'activated') {
+                  window.location.reload();
+                }
+              });
+            }
+          });
+          // 強制檢查更新
+          await registration.update();
+        } catch (err) {
+          console.error('SW registration failed:', err);
+        }
+      }
+    };
+    checkForUpdates();
   }, []);
 
   const handleVerify = async (e) => {
@@ -177,6 +198,25 @@ function App() {
     setError('');
   };
 
+  const handleRefresh = async () => {
+    // 清除 Service Worker 快取並重新載入
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+      }
+    }
+    // 清除所有快取
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      for (const name of cacheNames) {
+        await caches.delete(name);
+      }
+    }
+    // 強制重新載入
+    window.location.reload(true);
+  };
+
   const handleGoToPayslip = async () => {
     await fetchOptions();
   };
@@ -227,6 +267,14 @@ function App() {
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">Smart Management</p>
             <div className="h-[1px] w-8 bg-slate-200"></div>
           </div>
+          {/* 重新整理按鈕 */}
+          <button
+            onClick={handleRefresh}
+            className="mt-4 flex items-center justify-center gap-2 text-slate-400 hover:text-blue-600 text-sm transition-colors"
+          >
+            <RefreshCw size={14} />
+            <span>重新整理</span>
+          </button>
         </div>
 
         {/* 錯誤訊息 */}
