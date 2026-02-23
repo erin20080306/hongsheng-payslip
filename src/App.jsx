@@ -491,6 +491,11 @@ function App() {
                   <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <CalendarCheck size={20} className="text-green-600" />
                     {sheet.sheetName}
+                    {sheet.warehouse && (
+                      <span className="ml-2 px-3 py-1 bg-orange-100 text-orange-700 text-sm font-bold rounded-full">
+                        {sheet.warehouse}
+                      </span>
+                    )}
                   </h3>
                   
                   {/* E-J 欄資訊（S 前綴） */}
