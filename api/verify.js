@@ -40,6 +40,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: '請輸入姓名與身分證號' });
     }
 
+    // 管理者登入
+    if (name === '宏盛' && idNumber === '0000') {
+      return res.status(200).json({ ok: true, isAdmin: true });
+    }
+
     // Check env vars
     if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
       console.error('Missing env vars');

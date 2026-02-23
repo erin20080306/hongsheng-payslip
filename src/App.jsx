@@ -5,7 +5,7 @@ import { User, ShieldCheck, ArrowRight, Sparkles, ArrowLeft, Printer, Download, 
 const API_BASE = '';
 
 function App() {
-  const [step, setStep] = useState('login'); // login, menu, options, payslip, classes
+  const [step, setStep] = useState('login'); // login, menu, options, payslip, classes, admin
   const [name, setName] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,6 +16,8 @@ function App() {
   const [classesData, setClassesData] = useState(null);
   const [isFocused, setIsFocused] = useState('');
   const payslipRef = useRef(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [searchName, setSearchName] = useState('');
 
   useEffect(() => {
     // 自動檢查更新
@@ -71,7 +73,12 @@ function App() {
       const data = await res.json();
 
       if (data.ok) {
-        setStep('menu');
+        if (data.isAdmin) {
+          setIsAdmin(true);
+          setStep('admin');
+        } else {
+          setStep('menu');
+        }
       } else {
         setError(data.error || '驗證失敗');
       }
@@ -176,13 +183,16 @@ function App() {
       setStep('options');
       setPayslipData(null);
     } else if (step === 'options') {
-      setStep('menu');
+      setStep(isAdmin ? 'admin' : 'menu');
       setOptions(null);
     } else if (step === 'classes') {
-      setStep('menu');
+      setStep(isAdmin ? 'admin' : 'menu');
       setClassesData(null);
     } else if (step === 'menu') {
       setStep('login');
+    } else if (step === 'admin') {
+      setStep('login');
+      setIsAdmin(false);
     }
     setError('');
   };
@@ -196,6 +206,67 @@ function App() {
     setClassesData(null);
     setSelectedKey(null);
     setError('');
+    setIsAdmin(false);
+    setSearchName('');
+  };
+
+  // 管理者查詢報班
+  const handleAdminSearchClasses = async () => {
+    if (!searchName.trim()) {
+      setError('請輸入要查詢的姓名');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE}/api/classes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({ name: searchName.trim() }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setClassesData(data.data);
+        setStep('classes');
+      }
+    } catch (err) {
+      setError('網路錯誤，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 管理者查詢薪資
+  const handleAdminSearchPayslip = async () => {
+    if (!searchName.trim()) {
+      setError('請輸入要查詢的姓名');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE}/api/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({ name: searchName.trim() }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setOptions(data);
+        setName(searchName.trim());
+        setStep('options');
+      }
+    } catch (err) {
+      setError('網路錯誤，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = async () => {
@@ -355,6 +426,67 @@ function App() {
                 智慧辨識系統啟動中
               </button>
             </div>
+          </div>
+        )}
+
+        {/* 管理者介面 */}
+        {step === 'admin' && (
+          <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[40px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] border border-white">
+            <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-2 text-center">管理者查詢</h2>
+            <p className="text-slate-400 text-sm font-medium text-center mb-8">輸入員工姓名進行查詢</p>
+            
+            <div className="mb-6">
+              <div className="relative flex items-center">
+                <User size={24} className="absolute left-0 text-slate-300" />
+                <input
+                  type="text"
+                  placeholder="請輸入員工姓名"
+                  className="w-full pl-10 pr-4 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all duration-300 placeholder:text-slate-300 text-slate-800 font-bold text-xl"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <button
+                onClick={handleAdminSearchPayslip}
+                disabled={loading}
+                className="w-full flex items-center gap-4 p-5 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-2xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 group"
+              >
+                <div className="w-12 h-12 bg-blue-100 group-hover:bg-white/20 rounded-xl flex items-center justify-center">
+                  <Wallet size={24} className="text-blue-600 group-hover:text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="text-lg">查詢薪資</div>
+                  <div className="text-sm opacity-60 font-normal">查看員工薪資單</div>
+                </div>
+                <ArrowRight size={20} className="ml-auto opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              </button>
+
+              <button
+                onClick={handleAdminSearchClasses}
+                disabled={loading}
+                className="w-full flex items-center gap-4 p-5 bg-slate-50 hover:bg-green-600 hover:text-white rounded-2xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 group"
+              >
+                <div className="w-12 h-12 bg-green-100 group-hover:bg-white/20 rounded-xl flex items-center justify-center">
+                  <CalendarCheck size={24} className="text-green-600 group-hover:text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="text-lg">查詢報班</div>
+                  <div className="text-sm opacity-60 font-normal">查看員工報班紀錄</div>
+                </div>
+                <ArrowRight size={20} className="ml-auto opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              </button>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="mt-8 w-full flex items-center justify-center gap-2 py-4 border-2 border-slate-100 rounded-2xl text-slate-400 font-bold hover:border-red-400 hover:text-red-500 transition-all"
+            >
+              <LogOut size={18} />
+              <span className="tracking-wider">登出</span>
+            </button>
           </div>
         )}
 
