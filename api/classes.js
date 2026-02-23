@@ -79,8 +79,8 @@ export default async function handler(req, res) {
       // 如果沒有日期欄位，跳過這個分頁
       if (dateColumns.length === 0) continue;
       
-      // 在 B 欄搜尋姓名，顯示所有符合的記錄
-      const foundRows = [];
+      // 在 B 欄搜尋姓名，每個倉別只保留一筆（最新的）
+      const warehouseMap = new Map();
       
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -88,21 +88,24 @@ export default async function handler(req, res) {
         
         // B 欄包含姓名
         if (colB.includes(name)) {
-          foundRows.push(row);
+          // 取得倉別值
+          const warehouseCol = infoColumns.find(col => col.header.includes('倉別'));
+          const warehouseValue = warehouseCol ? (row[warehouseCol.index] || '').toString().trim() : '';
+          
+          // 每個倉別只保留第一筆
+          if (!warehouseMap.has(warehouseValue)) {
+            warehouseMap.set(warehouseValue, row);
+          }
         }
       }
 
-      // 處理每筆符合的資料
-      for (const foundRow of foundRows) {
+      // 處理每個倉別的資料
+      for (const [warehouseValue, foundRow] of warehouseMap) {
         // E-J 欄資訊（加上 S 前綴）
         const info = infoColumns.map(col => ({
           label: col.header,
           value: (foundRow[col.index] || '').toString().trim()
         }));
-        
-        // 取得倉別值
-        const warehouseInfo = info.find(item => item.label.includes('倉別'));
-        const warehouseValue = warehouseInfo ? warehouseInfo.value : '';
         
         // 日期欄位的資料
         const registrations = dateColumns.map(col => ({
