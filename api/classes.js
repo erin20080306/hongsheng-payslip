@@ -69,20 +69,17 @@ export default async function handler(req, res) {
       // 如果沒有資料欄位，跳過這個分頁
       if (dataColumns.length === 0) continue;
       
-      // 搜尋姓名符合的列（只取第一筆，避免重複）
+      // 在 B 欄搜尋姓名
       let foundRow = null;
-      let warehouse = ''; // 倉別
       
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        // 搜尋整列找姓名
-        const nameIndex = row.findIndex(cell => cell && cell.toString().trim() === name);
+        const colB = (row[1] || '').toString().trim();
         
-        if (nameIndex !== -1) {
+        // B 欄包含姓名
+        if (colB.includes(name)) {
           foundRow = row;
-          // 假設倉別在 D 欄（索引 3）
-          warehouse = (row[3] || '').toString().trim();
-          break; // 只取第一筆
+          break;
         }
       }
 
@@ -94,16 +91,8 @@ export default async function handler(req, res) {
           registered: (foundRow[col.index] || '').toString().toLowerCase().includes('v')
         }));
 
-        // 取得 A-D 欄的資料作為調試
-        const colA = (foundRow[0] || '').toString().trim();
-        const colB = (foundRow[1] || '').toString().trim();
-        const colC = (foundRow[2] || '').toString().trim();
-        const colD = (foundRow[3] || '').toString().trim();
-
         results.push({
           sheetName: sheetTitle,
-          warehouse: warehouse || colD || colC, // 嘗試 D 欄或 C 欄
-          debug: { colA, colB, colC, colD, headers: headers.slice(0, 5) },
           registrations
         });
       }
