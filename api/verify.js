@@ -16,11 +16,30 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    const { name, idNumber } = body;
+    let body = req.body;
+    
+    // Debug logging
+    console.log('Raw body type:', typeof body);
+    console.log('Raw body:', JSON.stringify(body));
+    
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        console.error('JSON parse error:', e);
+      }
+    }
+    if (!body || typeof body !== 'object') {
+      body = {};
+    }
+    const name = body.name || '';
+    const idNumber = body.idNumber || '';
+    
+    console.log('Parsed name:', name);
+    console.log('Parsed idNumber:', idNumber);
 
     if (!name || !idNumber) {
-      return res.status(400).json({ ok: false, error: '請輸入姓名與身分證號' });
+      return res.status(400).json({ ok: false, error: '請輸入姓名與身分證號', debug: { bodyType: typeof req.body, body: req.body } });
     }
 
     // Check env vars
