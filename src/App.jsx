@@ -553,9 +553,9 @@ function App() {
             <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-2 text-center">選擇薪資單</h2>
             <p className="text-slate-400 text-sm font-medium text-center mb-8">員工：{name}</p>
             
-            {options.map((opt) => (
+            {(options?.keys || []).map((opt) => (
               <div key={opt.aKey} className="mb-6">
-                {options.length > 1 && (
+                {(options?.keys || []).length > 1 && (
                   <h3 className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-3">識別碼：{opt.aKey}</h3>
                 )}
                 <div className="flex flex-wrap gap-3">
