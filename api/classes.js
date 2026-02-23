@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       // 如果沒有日期欄位，跳過這個分頁
       if (dateColumns.length === 0) continue;
       
-      // 在 B 欄搜尋姓名（可能有多筆，按倉別分組）
+      // 在 B 欄搜尋姓名，顯示所有符合的記錄
       const foundRows = [];
       
       for (let i = 1; i < rows.length; i++) {
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // 處理每一筆符合的資料
+      // 處理每筆符合的資料
       for (const foundRow of foundRows) {
         // E-J 欄資訊（加上 S 前綴）
         const info = infoColumns.map(col => ({
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
           value: (foundRow[col.index] || '').toString().trim()
         }));
         
-        // 找出倉別值作為分組標識
+        // 取得倉別值
         const warehouseInfo = info.find(item => item.label.includes('倉別'));
         const warehouseValue = warehouseInfo ? warehouseInfo.value : '';
         
