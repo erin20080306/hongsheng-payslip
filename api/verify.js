@@ -1,5 +1,11 @@
 import { google } from 'googleapis';
 
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
@@ -10,7 +16,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { name, idNumber } = req.body;
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
+    const { name, idNumber } = body;
 
     if (!name || !idNumber) {
       return res.status(400).json({ ok: false, error: '請輸入姓名與身分證號' });
