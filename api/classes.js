@@ -94,9 +94,16 @@ export default async function handler(req, res) {
           registered: (foundRow[col.index] || '').toString().toLowerCase().includes('v')
         }));
 
+        // 取得 A-D 欄的資料作為調試
+        const colA = (foundRow[0] || '').toString().trim();
+        const colB = (foundRow[1] || '').toString().trim();
+        const colC = (foundRow[2] || '').toString().trim();
+        const colD = (foundRow[3] || '').toString().trim();
+
         results.push({
           sheetName: sheetTitle,
-          warehouse: warehouse,
+          warehouse: warehouse || colD || colC, // 嘗試 D 欄或 C 欄
+          debug: { colA, colB, colC, colD, headers: headers.slice(0, 5) },
           registrations
         });
       }
