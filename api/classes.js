@@ -30,10 +30,11 @@ export default async function handler(req, res) {
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     const allSheets = spreadsheet.data.sheets || [];
 
-    // 篩選「酷澎」或「蝦皮」分頁
+    // 只篩選「酷澎」或「蝦皮」分頁（排除「報名表單」等）
     const targetSheets = allSheets.filter(s => {
       const title = s.properties.title;
-      return title.includes('酷澎') || title.includes('蝦皮');
+      // 只要「酷澎」或「蝦皮」，排除「報名表單」
+      return (title === '酷澎' || title === '蝦皮');
     });
 
     if (targetSheets.length === 0) {
