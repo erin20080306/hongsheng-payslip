@@ -237,6 +237,7 @@ function App() {
                   <User size={24} className={`absolute left-0 transition-colors ${isFocused === 'name' ? 'text-blue-600' : 'text-slate-300'}`} />
                   <input
                     type="text"
+                    inputMode="text"
                     placeholder="請輸入姓名"
                     onFocus={() => setIsFocused('name')}
                     onBlur={() => setIsFocused('')}
@@ -245,6 +246,8 @@ function App() {
                     onChange={(e) => setName(e.target.value)}
                     required
                     autoComplete="name"
+                    autoCapitalize="off"
+                    autoCorrect="off"
                   />
                 </div>
               </div>
@@ -257,7 +260,8 @@ function App() {
                 <div className="relative flex items-center">
                   <ShieldCheck size={24} className={`absolute left-0 transition-colors ${isFocused === 'id' ? 'text-blue-600' : 'text-slate-300'}`} />
                   <input
-                    type="password"
+                    type="text"
+                    inputMode="text"
                     placeholder="請輸入身分證"
                     onFocus={() => setIsFocused('id')}
                     onBlur={() => setIsFocused('')}
@@ -266,6 +270,8 @@ function App() {
                     onChange={(e) => setIdNumber(e.target.value.toUpperCase())}
                     required
                     autoComplete="off"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
                     maxLength={10}
                   />
                 </div>
