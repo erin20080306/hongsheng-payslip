@@ -1,12 +1,8 @@
-import { getSheetsClient } from './sheets/auth.js';
+import { google } from 'googleapis';
 
-const SHEET_B_ID = process.env.SHEET_B_ID || '1EBYVvYLQEe01H3ZDX1yozz_3S5o4_r6tGR479U5Fhjc';
-
-// Column letters A-Z
 const COLUMNS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 export default async function handler(req, res) {
-  // No cache headers
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -16,7 +12,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { aKey, sheetTitle, name } = req.body;
+    let body = req.body;
+    if (typeof body === 'string') body = JSON.parse(body);
+    
+    const { aKey, sheetTitle, name } = body || {};
 
     if (!sheetTitle) {
       return res.status(400).json({ error: '請選擇日期分頁' });
@@ -26,7 +25,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: '請提供識別碼或姓名' });
     }
 
-    const sheets = getSheetsClient();
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    });
+
+    const sheets = google.sheets({ version: 'v4', auth });
+    const SHEET_B_ID = process.env.SHEET_B_ID;
 
     // Read A-Z columns from the specified sheet
     const response = await sheets.spreadsheets.values.get({
@@ -40,23 +48,23 @@ export default async function handler(req, res) {
       return res.status(200).json({ error: '該分頁無資料' });
     }
 
-    // Find the row with matching aKey (column A) or name
+    // Find the row with matching aKey (column A) or name (column B with includes)
     let targetRow = null;
     let rowIndex = -1;
     let headerRow = rows[0] || [];
 
-    for (let i = 0; i < rows.length; i++) {
+    for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const colA = (row[0] || '').toString().trim();
       const colB = (row[1] || '').toString().trim();
 
-      // Match by aKey (column A) or by name (column B)
-      if (aKey && colA === aKey.trim()) {
+      // Match by aKey (column A) or by name in column B (using includes)
+      if (aKey && colA.includes(aKey.trim())) {
         targetRow = row;
         rowIndex = i;
         break;
       }
-      if (name && (colB === name.trim() || colA === name.trim())) {
+      if (name && colB.includes(name.trim())) {
         targetRow = row;
         rowIndex = i;
         break;

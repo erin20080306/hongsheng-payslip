@@ -209,7 +209,7 @@ function App() {
               <span className="text-blue-600 text-4xl font-black italic">H</span>
             </div>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-[0.2em] mb-2 pl-[0.2em]">宏盛薪資</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-[0.2em] mb-2 pl-[0.2em]">宏盛查詢</h1>
           <div className="flex items-center justify-center gap-2">
             <div className="h-[1px] w-8 bg-slate-200"></div>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">Smart Management</p>

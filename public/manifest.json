@@ -1,7 +1,7 @@
 {
-  "name": "宏盛薪資查詢系統",
-  "short_name": "宏盛薪資",
-  "description": "宏盛薪資單查詢系統",
+  "name": "宏盛查詢系統",
+  "short_name": "宏盛查詢",
+  "description": "宏盛查詢系統",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
