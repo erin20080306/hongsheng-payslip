@@ -118,6 +118,10 @@ export default async function handler(req, res) {
 
       // 處理每個倉別的資料
       for (const [warehouseValue, foundRow] of warehouseMap) {
+        // 確認姓名欄確實包含搜尋的姓名
+        const actualName = (foundRow[nameColIndex] || '').toString().trim();
+        if (!actualName.includes(name)) continue;
+        
         // E-J 欄資訊（加上 S 前綴）
         const info = infoColumns.map(col => ({
           label: col.header,
