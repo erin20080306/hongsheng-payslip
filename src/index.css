@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+  }
+  
+  @page {
+    margin: 1cm;
+  }
+}
