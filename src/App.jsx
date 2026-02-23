@@ -24,7 +24,17 @@ function App() {
   }, []);
 
   const handleVerify = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    
+    const trimmedName = name.trim();
+    const trimmedId = idNumber.trim();
+    
+    // 手動驗證
+    if (!trimmedName || !trimmedId) {
+      setError('請輸入姓名與身分證號');
+      return;
+    }
+    
     setError('');
     setLoading(true);
 
@@ -33,7 +43,7 @@ function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
-        body: JSON.stringify({ name: name.trim(), idNumber: idNumber.trim() }),
+        body: JSON.stringify({ name: trimmedName, idNumber: trimmedId }),
       });
       const data = await res.json();
 
@@ -244,7 +254,6 @@ function App() {
                     className="w-full pl-10 pr-4 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all duration-300 placeholder:text-slate-200 text-slate-800 font-black text-2xl"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    required
                     autoComplete="name"
                     autoCapitalize="off"
                     autoCorrect="off"
@@ -268,7 +277,6 @@ function App() {
                     className="w-full pl-10 pr-4 py-3 bg-transparent border-b-2 border-slate-100 focus:border-blue-600 outline-none transition-all duration-300 placeholder:text-slate-200 text-slate-800 font-black text-2xl tracking-[0.1em]"
                     value={idNumber}
                     onChange={(e) => setIdNumber(e.target.value.toUpperCase())}
-                    required
                     autoComplete="off"
                     autoCapitalize="characters"
                     autoCorrect="off"
