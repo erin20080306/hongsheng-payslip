@@ -56,40 +56,43 @@ export default async function handler(req, res) {
       // 第一列是標題
       const headers = rows[0] || [];
       
-      // 找出姓名欄位的索引（搜尋整列）
-      // 搜尋姓名符合的所有列
-      const matchedRows = [];
+      // 找出日期格式的欄位索引（如 2/16, 2/17 等）
+      const dateColumns = [];
+      for (let j = 0; j < headers.length; j++) {
+        const h = (headers[j] || '').toString().trim();
+        // 檢查是否為日期格式
+        if (/^\d{1,2}\/\d{1,2}$/.test(h) || /^\d{1,2}-\d{1,2}$/.test(h)) {
+          dateColumns.push({ index: j, header: h });
+        }
+      }
+      
+      // 如果沒有日期欄位，跳過這個分頁
+      if (dateColumns.length === 0) continue;
+      
+      // 搜尋姓名符合的列（只取第一筆，避免重複）
+      let foundRow = null;
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         // 搜尋整列找姓名
         const nameIndex = row.findIndex(cell => cell && cell.toString().trim() === name);
         
         if (nameIndex !== -1) {
-          // 找到姓名，取得 E 欄 (index 4) 以後的資料
-          const rowData = {};
-          
-          for (let j = 4; j < Math.max(row.length, headers.length); j++) {
-            const headerText = (headers[j] || '').toString().trim();
-            const cellValue = (row[j] || '').toString().trim();
-            if (headerText) {
-              rowData[headerText] = cellValue;
-            }
-          }
-          
-          matchedRows.push({
-            data: rowData
-          });
+          foundRow = row;
+          break; // 只取第一筆
         }
       }
 
-      // E 欄以後的表頭
-      const displayHeaders = headers.slice(4).filter(h => h).map(h => h.toString().trim());
+      if (foundRow) {
+        // 只取日期欄位的資料
+        const registrations = dateColumns.map(col => ({
+          date: col.header,
+          value: (foundRow[col.index] || '').toString().trim(),
+          registered: (foundRow[col.index] || '').toString().toLowerCase().includes('v')
+        }));
 
-      if (matchedRows.length > 0 && displayHeaders.length > 0) {
         results.push({
           sheetName: sheetTitle,
-          headers: displayHeaders,
-          rows: matchedRows
+          registrations
         });
       }
     }

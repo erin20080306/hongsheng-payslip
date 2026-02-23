@@ -469,31 +469,32 @@ function App() {
                     {sheet.sheetName}
                   </h3>
                   
-                  {/* 表格顯示 */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm border-collapse">
-                      <thead>
-                        <tr className="bg-slate-200">
-                          {sheet.headers?.map((h, hi) => (
-                            <th key={hi} className="px-3 py-2 text-left font-bold text-slate-700 border border-slate-300 whitespace-nowrap">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sheet.rows?.map((row, ri) => (
-                          <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                            {sheet.headers?.map((h, hi) => (
-                              <td key={hi} className="px-3 py-2 text-slate-700 border border-slate-200 whitespace-nowrap">
-                                {row.data?.[h] || '-'}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  {/* 日期報班格式顯示 */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {sheet.registrations?.map((reg, i) => (
+                      <div
+                        key={i}
+                        className={`p-3 rounded-xl text-center ${
+                          reg.registered
+                            ? 'bg-green-100 border-2 border-green-400'
+                            : 'bg-slate-100 border border-slate-200'
+                        }`}
+                      >
+                        <div className="text-sm font-bold text-slate-700">{reg.date}</div>
+                        <div className="mt-1">
+                          {reg.registered ? (
+                            <CheckCircle size={20} className="mx-auto text-green-600" />
+                          ) : (
+                            <XCircle size={20} className="mx-auto text-slate-300" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                   
-                  <p className="mt-3 text-sm text-slate-500">共 {sheet.rows?.length || 0} 筆報班紀錄</p>
+                  <p className="mt-3 text-sm text-slate-500">
+                    已報名：{sheet.registrations?.filter(r => r.registered).length || 0} 天
+                  </p>
                 </div>
               ))}
             </div>
