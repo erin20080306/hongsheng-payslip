@@ -55,30 +55,13 @@ export default async function handler(req, res) {
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      const colA = (row[0] || '').toString().trim();
       const colB = (row[1] || '').toString().trim();
 
-      // 同時匹配 aKey 和 name（如果都提供）
-      if (aKey && name) {
-        if (colA === aKey.trim() && colB.includes(name.trim())) {
-          targetRow = row;
-          rowIndex = i;
-          break;
-        }
-      } else if (name) {
-        // 只有 name，精確匹配 B 欄
-        if (colB.includes(name.trim())) {
-          targetRow = row;
-          rowIndex = i;
-          break;
-        }
-      } else if (aKey) {
-        // 只有 aKey，精確匹配 A 欄
-        if (colA === aKey.trim()) {
-          targetRow = row;
-          rowIndex = i;
-          break;
-        }
+      // 使用姓名匹配 B 欄（包含姓名即可）
+      if (name && colB.includes(name.trim())) {
+        targetRow = row;
+        rowIndex = i;
+        break;
       }
     }
 

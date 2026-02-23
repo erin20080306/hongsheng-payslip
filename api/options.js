@@ -85,7 +85,8 @@ export default async function handler(req, res) {
     }
 
     const { dateSheets, valueRanges } = allData;
-    const keysMap = new Map();
+    // 使用姓名作為 key，收集所有有該姓名的日期分頁
+    const datesSet = new Set();
     
     for (let idx = 0; idx < valueRanges.length; idx++) {
       const sheetTitle = dateSheets[idx];
@@ -94,25 +95,18 @@ export default async function handler(req, res) {
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        const colA = (row[0] || '').toString().trim();
         const colB = (row[1] || '').toString().trim();
         
         // B 欄包含姓名
         if (colB.includes(name)) {
-          const aKey = colA || name;
-          if (!keysMap.has(aKey)) keysMap.set(aKey, []);
-          if (!keysMap.get(aKey).includes(sheetTitle)) {
-            keysMap.get(aKey).push(sheetTitle);
-          }
+          datesSet.add(sheetTitle);
           break;
         }
       }
     }
 
-    const keys = Array.from(keysMap.entries()).map(([aKey, dates]) => ({
-      aKey,
-      dates: dates.sort()
-    }));
+    const dates = Array.from(datesSet).sort();
+    const keys = dates.length > 0 ? [{ aKey: name, dates }] : [];
 
     if (keys.length === 0) {
       return res.status(200).json({ keys: [], error: '找不到該姓名的薪資資料' });
