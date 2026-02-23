@@ -26,12 +26,14 @@ function App() {
   const handleVerify = async (e) => {
     if (e) e.preventDefault();
     
-    const trimmedName = name.trim();
-    const trimmedId = idNumber.trim();
+    const trimmedName = (name || '').trim();
+    const trimmedId = (idNumber || '').trim();
+    
+    console.log('handleVerify called', { name, idNumber, trimmedName, trimmedId });
     
     // 手動驗證
     if (!trimmedName || !trimmedId) {
-      setError('請輸入姓名與身分證號');
+      setError(`請輸入姓名與身分證號 (name=${trimmedName}, id=${trimmedId})`);
       return;
     }
     
