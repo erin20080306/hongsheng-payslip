@@ -56,18 +56,27 @@ export default async function handler(req, res) {
       // 第一列是標題
       const headers = rows[0] || [];
       
-      // 從 E 欄（索引 4）開始，只取有表頭的欄位
-      const dataColumns = [];
-      for (let j = 4; j < headers.length; j++) {
+      // E-J 欄（索引 4-9）顯示為 "S" + 表頭
+      const infoColumns = [];
+      for (let j = 4; j <= 9 && j < headers.length; j++) {
         const h = (headers[j] || '').toString().trim();
-        // 只有表頭有資料才加入
         if (h) {
-          dataColumns.push({ index: j, header: h });
+          infoColumns.push({ index: j, header: 'S' + h });
         }
       }
       
-      // 如果沒有資料欄位，跳過這個分頁
-      if (dataColumns.length === 0) continue;
+      // 日期格式的欄位（如 2/16, 2/17, 3/1 等）
+      const dateColumns = [];
+      for (let j = 0; j < headers.length; j++) {
+        const h = (headers[j] || '').toString().trim();
+        // 檢查是否為日期格式 (如 2/16, 2/17, 3/1)
+        if (/^\d{1,2}\/\d{1,2}$/.test(h)) {
+          dateColumns.push({ index: j, header: h });
+        }
+      }
+      
+      // 如果沒有日期欄位，跳過這個分頁
+      if (dateColumns.length === 0) continue;
       
       // 在 B 欄搜尋姓名
       let foundRow = null;
@@ -84,8 +93,14 @@ export default async function handler(req, res) {
       }
 
       if (foundRow) {
-        // 從 E 欄開始取資料，只取有表頭的欄位
-        const registrations = dataColumns.map(col => ({
+        // E-J 欄資訊（加上 S 前綴）
+        const info = infoColumns.map(col => ({
+          label: col.header,
+          value: (foundRow[col.index] || '').toString().trim()
+        }));
+        
+        // 日期欄位的資料
+        const registrations = dateColumns.map(col => ({
           date: col.header,
           value: (foundRow[col.index] || '').toString().trim(),
           registered: (foundRow[col.index] || '').toString().toLowerCase().includes('v')
@@ -93,6 +108,7 @@ export default async function handler(req, res) {
 
         results.push({
           sheetName: sheetTitle,
+          info: info,
           registrations
         });
       }

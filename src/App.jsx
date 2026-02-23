@@ -491,12 +491,21 @@ function App() {
                   <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <CalendarCheck size={20} className="text-green-600" />
                     {sheet.sheetName}
-                    {sheet.warehouse && (
-                      <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded-lg">
-                        {sheet.warehouse}
-                      </span>
-                    )}
                   </h3>
+                  
+                  {/* E-J 欄資訊（S 前綴） */}
+                  {sheet.info && sheet.info.length > 0 && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded-xl">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {sheet.info.map((item, i) => (
+                          <div key={i} className="flex justify-between">
+                            <span className="text-slate-500">{item.label}:</span>
+                            <span className="font-bold text-slate-700">{item.value || '-'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* 日期報班格式顯示 */}
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
