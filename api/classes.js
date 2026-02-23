@@ -57,9 +57,27 @@ export default async function handler(req, res) {
       // 第一列是標題
       const headers = rows[0] || [];
       
-      // E-J 欄（索引 4-9）顯示為 "S" + 表頭
+      // 根據分頁設定欄位對應
+      // 酷澎：B欄=姓名(索引1), J欄=倉別(索引9)
+      // 蝦皮：J欄=姓名(索引9), H欄=倉別(索引7)
+      let nameColIndex, warehouseColIndex, infoStartCol, infoEndCol;
+      if (sheetTitle === '酷澎') {
+        nameColIndex = 1;      // B欄
+        warehouseColIndex = 9; // J欄
+        infoStartCol = 4;      // E欄
+        infoEndCol = 9;        // J欄
+      } else if (sheetTitle === '蝦皮') {
+        nameColIndex = 9;      // J欄
+        warehouseColIndex = 7; // H欄
+        infoStartCol = 4;      // E欄
+        infoEndCol = 9;        // J欄
+      } else {
+        continue;
+      }
+      
+      // 資訊欄位（加上 S 前綴）
       const infoColumns = [];
-      for (let j = 4; j <= 9 && j < headers.length; j++) {
+      for (let j = infoStartCol; j <= infoEndCol && j < headers.length; j++) {
         const h = (headers[j] || '').toString().trim();
         if (h) {
           infoColumns.push({ index: j, header: 'S' + h });
@@ -79,18 +97,17 @@ export default async function handler(req, res) {
       // 如果沒有日期欄位，跳過這個分頁
       if (dateColumns.length === 0) continue;
       
-      // 在 B 欄搜尋姓名，每個倉別只保留一筆（最新的）
+      // 搜尋姓名，每個倉別只保留一筆
       const warehouseMap = new Map();
       
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        const colB = (row[1] || '').toString().trim();
+        const nameValue = (row[nameColIndex] || '').toString().trim();
         
-        // B 欄包含姓名
-        if (colB.includes(name)) {
+        // 姓名欄包含搜尋的姓名
+        if (nameValue.includes(name)) {
           // 取得倉別值
-          const warehouseCol = infoColumns.find(col => col.header.includes('倉別'));
-          const warehouseValue = warehouseCol ? (row[warehouseCol.index] || '').toString().trim() : '';
+          const warehouseValue = (row[warehouseColIndex] || '').toString().trim();
           
           // 每個倉別只保留第一筆
           if (!warehouseMap.has(warehouseValue)) {
