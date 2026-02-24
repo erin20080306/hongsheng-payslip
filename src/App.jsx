@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
-import { User, ShieldCheck, ArrowRight, Sparkles, ArrowLeft, Printer, Download, LogOut, Wallet, CalendarCheck, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { User, ShieldCheck, ArrowRight, Sparkles, ArrowLeft, Download, LogOut, Wallet, CalendarCheck, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 
 const API_BASE = '';
 
@@ -147,10 +147,6 @@ function App() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const handleDownloadPng = async () => {
     if (!payslipRef.current) return;
     setLoading(true);
@@ -160,21 +156,44 @@ function App() {
         pixelRatio: 2,
       });
       
-      const link = document.createElement('a');
-      link.download = `薪資單_${selectedKey?.sheetTitle || 'payslip'}.png`;
-      link.href = dataUrl;
+      const filename = `薪資單_${selectedKey?.sheetTitle || 'payslip'}.png`;
       
-      if (navigator.userAgent.match(/Android/i) && !('download' in link)) {
-        const img = new Image();
-        img.src = dataUrl;
-        const w = window.open('');
-        w.document.write('<p>長按圖片另存新檔</p>');
-        w.document.body.appendChild(img);
+      // 將 dataUrl 轉換為 Blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      // 嘗試使用 Web Share API（適用於手機）
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })) {
+        const file = new File([blob], filename, { type: 'image/png' });
+        await navigator.share({
+          files: [file],
+          title: filename,
+        });
       } else {
+        // 使用傳統下載方式
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       }
     } catch (err) {
-      alert('下載失敗，請嘗試使用列印功能');
+      // 備用方案：直接使用 dataUrl
+      try {
+        const dataUrl = await toPng(payslipRef.current, {
+          backgroundColor: '#ffffff',
+          pixelRatio: 2,
+        });
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `薪資單_${selectedKey?.sheetTitle || 'payslip'}.png`;
+        link.click();
+      } catch (e) {
+        alert('下載失敗，請截圖保存');
+      }
     } finally {
       setLoading(false);
     }
@@ -613,13 +632,6 @@ function App() {
                 <span>返回</span>
               </button>
               <div className="flex-1"></div>
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-5 py-2 bg-slate-100 hover:bg-blue-600 hover:text-white rounded-xl font-bold text-slate-700 transition-all"
-              >
-                <Printer size={18} />
-                <span>列印</span>
-              </button>
               <button
                 onClick={handleDownloadPng}
                 disabled={loading}
