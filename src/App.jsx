@@ -572,7 +572,8 @@ function App() {
             </button>
             
             <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-2 text-center">選擇薪資單</h2>
-            <p className="text-slate-400 text-sm font-medium text-center mb-8">員工：{name}</p>
+            <p className="text-slate-400 text-sm font-medium text-center mb-2">員工：{name}</p>
+            <p className="text-blue-600 text-base font-bold text-center mb-8">👆 點選要查詢的薪資日期</p>
             
             {(options?.keys || []).map((opt) => {
               const isExpanded = expandedDates[opt.aKey] || false;
@@ -646,7 +647,7 @@ function App() {
             <div ref={payslipRef} className="p-8 bg-white">
               <div className="text-center mb-8 pb-6 border-b-2 border-blue-600">
                 <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-1">宏盛薪資單</h2>
-                <p className="text-slate-400 text-sm">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '')}</p>
+                <p className="text-slate-500 text-lg font-bold">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '')}</p>
               </div>
               <table className="w-full">
                 <tbody>
