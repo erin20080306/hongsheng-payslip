@@ -104,7 +104,7 @@ function App() {
       if (data.error && data.keys?.length === 0) {
         setError(data.error);
       } else if (data.keys?.length > 0) {
-        setOptions(data.keys);
+        setOptions(data);
         if (data.keys.length === 1 && data.keys[0].dates.length === 1) {
           await fetchPayslip(data.keys[0].aKey, data.keys[0].dates[0]);
         } else {
