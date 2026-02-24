@@ -42,6 +42,7 @@ export default async function handler(req, res) {
     }
 
     const results = [];
+    const debug = [];
 
     for (const sheet of targetSheets) {
       const sheetTitle = sheet.properties.title;
@@ -88,7 +89,7 @@ export default async function handler(req, res) {
       
       // 日期格式的欄位（如 2/16, 2/17, 3/1 等）
       const dateColumns = [];
-      console.log(`${sheetTitle} headers count: ${headers.length}, first 15 headers:`, headers.slice(0, 15));
+      debug.push({ sheet: sheetTitle, headersCount: headers.length, first15: headers.slice(0, 15), rows: rows.length });
       for (let j = 0; j < headers.length; j++) {
         const h = (headers[j] || '').toString().trim();
         // 檢查是否為日期格式 (如 2/16, 2/17, 3/1)
@@ -96,11 +97,11 @@ export default async function handler(req, res) {
           dateColumns.push({ index: j, header: h });
         }
       }
-      console.log(`${sheetTitle} dateColumns count: ${dateColumns.length}`);
+      debug.push({ sheet: sheetTitle, dateColumnsCount: dateColumns.length });
       
       // 如果沒有日期欄位，跳過這個分頁
       if (dateColumns.length === 0) {
-        console.log(`${sheetTitle} skipped - no date columns found`);
+        debug.push({ sheet: sheetTitle, skipped: 'no date columns' });
         continue;
       }
       
@@ -158,10 +159,10 @@ export default async function handler(req, res) {
     }
 
     if (results.length === 0) {
-      return res.status(404).json({ error: '找不到報班資料' });
+      return res.status(404).json({ error: '找不到報班資料', debug });
     }
 
-    return res.status(200).json({ ok: true, data: results });
+    return res.status(200).json({ ok: true, results, debug });
 
   } catch (error) {
     console.error('Classes API error:', error);
