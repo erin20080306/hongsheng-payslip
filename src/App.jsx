@@ -73,6 +73,22 @@ function App() {
       // 預先設置資料（如果有的話）
       if (optionsData.keys?.length > 0) {
         setOptions(optionsData);
+        
+        // 如果只有一個薪資單，預先載入薪資單內容
+        if (optionsData.keys.length === 1 && optionsData.keys[0].dates.length === 1) {
+          const aKey = optionsData.keys[0].aKey;
+          const sheetTitle = optionsData.keys[0].dates[0];
+          const payslipRes = await fetch(`${API_BASE}/api/payslip`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ aKey, sheetTitle, name: userName }),
+          });
+          const payslipData = await payslipRes.json();
+          if (!payslipData.error) {
+            setPayslipData(payslipData);
+            setSelectedKey({ aKey, sheetTitle });
+          }
+        }
       }
       if (classesData.results?.length > 0 || classesData.data?.length > 0) {
         setClassesData(classesData.results || classesData.data);
@@ -351,6 +367,11 @@ function App() {
     // 如果已經預載入了資料，直接使用
     if (options?.keys?.length > 0) {
       if (options.keys.length === 1 && options.keys[0].dates.length === 1) {
+        // 如果薪資單內容也已預載入，直接顯示
+        if (payslipData) {
+          setStep('payslip');
+          return;
+        }
         await fetchPayslip(options.keys[0].aKey, options.keys[0].dates[0]);
       } else {
         setStep('options');
