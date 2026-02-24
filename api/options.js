@@ -12,13 +12,14 @@ let cacheD = {
   TTL: 5 * 60 * 1000 // 5 分鐘
 };
 
-// Check if sheet name contains date pattern (e.g., 2-19, 0219, 02-19)
+// Check if sheet name contains date pattern (e.g., 2-19, 0219, 02-19, 0216-0222)
 function isDateSheet(sheetName) {
   const patterns = [
-    /^\d{1,2}-\d{1,2}$/,
-    /^\d{3,4}$/,
-    /\d{1,2}-\d{1,2}/,
-    /\d{3,4}/
+    /^\d{1,2}-\d{1,2}$/,       // 2-19, 02-19
+    /^\d{3,4}$/,               // 0219, 219
+    /^\d{4}-\d{4}$/,           // 0216-0222 (SHEET_D format)
+    /\d{1,2}-\d{1,2}/,         // contains 2-19
+    /\d{3,4}/                  // contains 0219
   ];
   return patterns.some(p => p.test(sheetName));
 }
