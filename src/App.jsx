@@ -48,6 +48,41 @@ function App() {
     checkForUpdates();
   }, []);
 
+  // 背景預先載入資料（不阻塞 UI）
+  const prefetchData = async (userName) => {
+    try {
+      // 同時預先載入薪資選項和報班資料
+      const [optionsRes, classesRes] = await Promise.all([
+        fetch(`${API_BASE}/api/options`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: userName }),
+        }),
+        fetch(`${API_BASE}/api/classes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: userName }),
+        }),
+      ]);
+      
+      const [optionsData, classesData] = await Promise.all([
+        optionsRes.json(),
+        classesRes.json(),
+      ]);
+      
+      // 預先設置資料（如果有的話）
+      if (optionsData.keys?.length > 0) {
+        setOptions(optionsData);
+      }
+      if (classesData.results?.length > 0 || classesData.data?.length > 0) {
+        setClassesData(classesData.results || classesData.data);
+      }
+    } catch (err) {
+      // 預載入失敗不影響使用者體驗，靜默處理
+      console.log('Prefetch failed:', err);
+    }
+  };
+
   const handleVerify = async (e) => {
     if (e) e.preventDefault();
     
@@ -80,6 +115,8 @@ function App() {
           setStep('admin');
         } else {
           setStep('menu');
+          // 背景預先載入薪資選項和報班資料
+          prefetchData(trimmedName);
         }
       } else {
         setError(data.error || '驗證失敗');
@@ -311,10 +348,25 @@ function App() {
   };
 
   const handleGoToPayslip = async () => {
+    // 如果已經預載入了資料，直接使用
+    if (options?.keys?.length > 0) {
+      if (options.keys.length === 1 && options.keys[0].dates.length === 1) {
+        await fetchPayslip(options.keys[0].aKey, options.keys[0].dates[0]);
+      } else {
+        setStep('options');
+      }
+      return;
+    }
     await fetchOptions();
   };
 
   const handleGoToClasses = async () => {
+    // 如果已經預載入了資料，直接使用
+    if (classesData?.length > 0) {
+      setStep('classes');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     try {
