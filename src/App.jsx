@@ -19,6 +19,7 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchName, setSearchName] = useState('');
   const [expandedDates, setExpandedDates] = useState({});
+  const [expandedClasses, setExpandedClasses] = useState({});
 
   useEffect(() => {
     // 自動檢查更新
@@ -683,7 +684,13 @@ function App() {
             </div>
 
             <div className="p-6 space-y-6">
-              {classesData.map((sheet, idx) => (
+              {classesData.map((sheet, idx) => {
+                const isExpanded = expandedClasses[idx] || false;
+                const registeredCount = sheet.registrations?.filter(r => r.registered).length || 0;
+                const visibleRegs = isExpanded ? sheet.registrations : sheet.registrations?.slice(0, 10);
+                const hasMore = (sheet.registrations?.length || 0) > 10;
+                
+                return (
                 <div key={idx} className="bg-slate-50 rounded-2xl p-5">
                   <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <CalendarCheck size={20} className="text-green-600" />
@@ -694,6 +701,8 @@ function App() {
                       </span>
                     )}
                   </h3>
+                  
+                  <p className="text-sm text-slate-500 mb-3">共 {sheet.registrations?.length || 0} 天，已報 {registeredCount} 天</p>
                   
                   {/* E-J 欄資訊（S 前綴） */}
                   {sheet.info && sheet.info.length > 0 && (
@@ -711,7 +720,7 @@ function App() {
                   
                   {/* 日期報班格式顯示 */}
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                    {sheet.registrations?.map((reg, i) => (
+                    {visibleRegs?.map((reg, i) => (
                       <div
                         key={i}
                         className={`p-3 rounded-xl text-center ${
@@ -732,11 +741,17 @@ function App() {
                     ))}
                   </div>
                   
-                  <p className="mt-3 text-sm text-slate-500">
-                    已報名：{sheet.registrations?.filter(r => r.registered).length || 0} 天
-                  </p>
+                  {hasMore && (
+                    <button
+                      onClick={() => setExpandedClasses(prev => ({ ...prev, [idx]: !isExpanded }))}
+                      className="mt-4 text-blue-600 font-bold text-sm hover:text-blue-800 transition-colors"
+                    >
+                      {isExpanded ? '收合 ▲' : `展開全部 (${(sheet.registrations?.length || 0) - 10} 天更多) ▼`}
+                    </button>
+                  )}
                 </div>
-              ))}
+              );
+              })}
             </div>
 
             <div className="p-6 border-t border-slate-100 no-print">
