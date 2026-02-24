@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       
       // 根據分頁設定欄位對應
       // 酷澎：B欄=姓名(索引1), J欄=倉別(索引9)
-      // 蝦皮：B欄=姓名(索引1), H欄=倉別(索引7)
+      // 蝦皮：C欄=姓名(索引2), H欄=倉別(索引7)
       let nameColIndex, warehouseColIndex, warehouseColIndex2, infoStartCol, infoEndCol;
       if (sheetTitle === '酷澎') {
         nameColIndex = 1;      // B欄
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else if (sheetTitle === '蝦皮') {
-        nameColIndex = 1;      // B欄（姓名）
+        nameColIndex = 2;      // C欄（姓名）
         warehouseColIndex = 7; // H欄（倉別）
         warehouseColIndex2 = null;
         infoStartCol = 4;      // E欄
