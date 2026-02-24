@@ -1,7 +1,12 @@
 import { google } from 'googleapis';
 
 // 簡單的記憶體快取（5 分鐘過期）
-let cache = {
+let cacheB = {
+  data: null,
+  timestamp: 0,
+  TTL: 5 * 60 * 1000 // 5 分鐘
+};
+let cacheD = {
   data: null,
   timestamp: 0,
   TTL: 5 * 60 * 1000 // 5 分鐘
@@ -46,67 +51,89 @@ export default async function handler(req, res) {
 
     const sheets = google.sheets({ version: 'v4', auth });
     const SHEET_B_ID = process.env.SHEET_B_ID;
+    const SHEET_D_ID = process.env.SHEET_D_ID;
 
-    // 檢查快取是否有效
     const now = Date.now();
-    let allData = null;
-    
-    if (cache.data && (now - cache.timestamp) < cache.TTL) {
-      // 使用快取資料
-      allData = cache.data;
-      console.log('Using cached data');
-    } else {
-      // 從 Google Sheets 取得資料
-      const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_B_ID });
-      const allSheets = spreadsheet.data.sheets || [];
-      const dateSheets = allSheets.map(s => s.properties.title).filter(isDateSheet);
+    const allDates = new Set();
 
-      if (dateSheets.length === 0) {
-        return res.status(200).json({ keys: [], error: '找不到符合日期格式的分頁' });
+    // 處理 Sheet B
+    if (SHEET_B_ID) {
+      let dataB = null;
+      if (cacheB.data && (now - cacheB.timestamp) < cacheB.TTL) {
+        dataB = cacheB.data;
+      } else {
+        const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_B_ID });
+        const allSheets = spreadsheet.data.sheets || [];
+        const dateSheets = allSheets.map(s => s.properties.title).filter(isDateSheet);
+
+        if (dateSheets.length > 0) {
+          const ranges = dateSheets.map(title => `'${title}'!A:B`);
+          const batchResponse = await sheets.spreadsheets.values.batchGet({
+            spreadsheetId: SHEET_B_ID,
+            ranges: ranges,
+          });
+          dataB = { dateSheets, valueRanges: batchResponse.data.valueRanges || [], sheetId: 'B' };
+          cacheB.data = dataB;
+          cacheB.timestamp = now;
+        }
       }
 
-      // 使用 batchGet 一次取得所有分頁的 A:B 欄資料
-      const ranges = dateSheets.map(title => `'${title}'!A:B`);
-      
-      const batchResponse = await sheets.spreadsheets.values.batchGet({
-        spreadsheetId: SHEET_B_ID,
-        ranges: ranges,
-      });
-
-      allData = {
-        dateSheets,
-        valueRanges: batchResponse.data.valueRanges || []
-      };
-      
-      // 更新快取
-      cache.data = allData;
-      cache.timestamp = now;
-      console.log('Fetched fresh data and cached');
-    }
-
-    const { dateSheets, valueRanges } = allData;
-    // 使用姓名作為 key，收集所有有該姓名的日期分頁
-    const datesSet = new Set();
-    
-    for (let idx = 0; idx < valueRanges.length; idx++) {
-      const sheetTitle = dateSheets[idx];
-      const rows = valueRanges[idx].values || [];
-      if (rows.length === 0) continue;
-
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        const colB = (row[1] || '').toString().trim();
-        
-        // B 欄包含姓名
-        if (colB.includes(name)) {
-          datesSet.add(sheetTitle);
-          break;
+      if (dataB) {
+        for (let idx = 0; idx < dataB.valueRanges.length; idx++) {
+          const sheetTitle = dataB.dateSheets[idx];
+          const rows = dataB.valueRanges[idx].values || [];
+          for (let i = 1; i < rows.length; i++) {
+            const colB = (rows[i][1] || '').toString().trim();
+            if (colB.includes(name)) {
+              allDates.add(`B:${sheetTitle}`);
+              break;
+            }
+          }
         }
       }
     }
 
-    const dates = Array.from(datesSet).sort();
-    const keys = dates.length > 0 ? [{ aKey: name, dates }] : [];
+    // 處理 Sheet D (新增)
+    if (SHEET_D_ID) {
+      let dataD = null;
+      if (cacheD.data && (now - cacheD.timestamp) < cacheD.TTL) {
+        dataD = cacheD.data;
+      } else {
+        const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_D_ID });
+        const allSheets = spreadsheet.data.sheets || [];
+        const dateSheets = allSheets.map(s => s.properties.title).filter(isDateSheet);
+
+        if (dateSheets.length > 0) {
+          const ranges = dateSheets.map(title => `'${title}'!A:B`);
+          const batchResponse = await sheets.spreadsheets.values.batchGet({
+            spreadsheetId: SHEET_D_ID,
+            ranges: ranges,
+          });
+          dataD = { dateSheets, valueRanges: batchResponse.data.valueRanges || [], sheetId: 'D' };
+          cacheD.data = dataD;
+          cacheD.timestamp = now;
+        }
+      }
+
+      if (dataD) {
+        for (let idx = 0; idx < dataD.valueRanges.length; idx++) {
+          const sheetTitle = dataD.dateSheets[idx];
+          const rows = dataD.valueRanges[idx].values || [];
+          for (let i = 1; i < rows.length; i++) {
+            const colB = (rows[i][1] || '').toString().trim();
+            if (colB.includes(name)) {
+              allDates.add(`D:${sheetTitle}`);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 整理結果，按 sheetId 分組
+    const datesArray = Array.from(allDates);
+    const dates = datesArray.map(d => d.split(':')[1]).sort();
+    const keys = dates.length > 0 ? [{ aKey: name, dates: datesArray.sort() }] : [];
 
     if (keys.length === 0) {
       return res.status(200).json({ keys: [], error: '找不到該姓名的薪資資料' });

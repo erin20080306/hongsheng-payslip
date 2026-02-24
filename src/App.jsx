@@ -18,6 +18,7 @@ function App() {
   const payslipRef = useRef(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchName, setSearchName] = useState('');
+  const [expandedDates, setExpandedDates] = useState({});
 
   useEffect(() => {
     // 自動檢查更新
@@ -553,25 +554,40 @@ function App() {
             <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-2 text-center">選擇薪資單</h2>
             <p className="text-slate-400 text-sm font-medium text-center mb-8">員工：{name}</p>
             
-            {(options?.keys || []).map((opt) => (
-              <div key={opt.aKey} className="mb-6">
-                {(options?.keys || []).length > 1 && (
-                  <h3 className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-3">識別碼：{opt.aKey}</h3>
-                )}
-                <div className="flex flex-wrap gap-3">
-                  {opt.dates.map((date) => (
+            {(options?.keys || []).map((opt) => {
+              const isExpanded = expandedDates[opt.aKey] || false;
+              const visibleDates = isExpanded ? opt.dates : opt.dates.slice(0, 6);
+              const hasMore = opt.dates.length > 6;
+              
+              return (
+                <div key={opt.aKey} className="mb-6">
+                  {(options?.keys || []).length > 1 && (
+                    <h3 className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-3">識別碼：{opt.aKey}</h3>
+                  )}
+                  <p className="text-sm text-slate-500 mb-3">共 {opt.dates.length} 筆薪資單</p>
+                  <div className="flex flex-wrap gap-3">
+                    {visibleDates.map((date) => (
+                      <button
+                        key={date}
+                        onClick={() => fetchPayslip(opt.aKey, date)}
+                        disabled={loading}
+                        className="px-6 py-3 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50"
+                      >
+                        {date}
+                      </button>
+                    ))}
+                  </div>
+                  {hasMore && (
                     <button
-                      key={date}
-                      onClick={() => fetchPayslip(opt.aKey, date)}
-                      disabled={loading}
-                      className="px-6 py-3 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50"
+                      onClick={() => setExpandedDates(prev => ({ ...prev, [opt.aKey]: !isExpanded }))}
+                      className="mt-4 text-blue-600 font-bold text-sm hover:text-blue-800 transition-colors"
                     >
-                      {date}
+                      {isExpanded ? '收合 ▲' : `展開全部 (${opt.dates.length - 6} 筆更多) ▼`}
                     </button>
-                  ))}
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             <button
               onClick={handleLogout}

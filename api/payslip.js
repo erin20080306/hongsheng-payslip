@@ -35,11 +35,24 @@ export default async function handler(req, res) {
 
     const sheets = google.sheets({ version: 'v4', auth });
     const SHEET_B_ID = process.env.SHEET_B_ID;
+    const SHEET_D_ID = process.env.SHEET_D_ID;
+
+    // 解析 sheetTitle，格式可能是 "B:0216-0222" 或 "D:0216-0222" 或舊格式 "0216-0222"
+    let targetSheetId = SHEET_B_ID;
+    let actualSheetTitle = sheetTitle;
+    
+    if (sheetTitle.startsWith('B:')) {
+      targetSheetId = SHEET_B_ID;
+      actualSheetTitle = sheetTitle.substring(2);
+    } else if (sheetTitle.startsWith('D:')) {
+      targetSheetId = SHEET_D_ID;
+      actualSheetTitle = sheetTitle.substring(2);
+    }
 
     // Read A-Z columns from the specified sheet
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_B_ID,
-      range: `'${sheetTitle}'!A:Z`,
+      spreadsheetId: targetSheetId,
+      range: `'${actualSheetTitle}'!A:Z`,
     });
 
     const rows = response.data.values || [];

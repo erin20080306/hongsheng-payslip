@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
   <rect width="192" height="192" fill="white"/>
-  <rect x="19.200000000000003" y="19.200000000000003" width="153.60000000000002" height="153.60000000000002" rx="19.200000000000003" fill="#f97316"/>
-  <text x="96" y="86.4" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">宏盛</text>
-  <text x="96" y="134.39999999999998" font-family="Arial, sans-serif" font-size="28.799999999999997" fill="white" text-anchor="middle">薪資</text>
+  <text x="96" y="130" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#2563eb" text-anchor="middle">宏</text>
 </svg>
