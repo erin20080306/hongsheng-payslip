@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       
       // 根據分頁設定欄位對應
       // 酷澎：B欄=姓名(索引1), J欄=倉別(索引9)
-      // 蝦皮：C欄=姓名(索引2), H欄=倉別(索引7)
+      // 蝦皮：B欄=姓名(索引1), H欄=倉別(索引7)
       let nameColIndex, warehouseColIndex, warehouseColIndex2, infoStartCol, infoEndCol;
       if (sheetTitle === '酷澎') {
         nameColIndex = 1;      // B欄
@@ -68,8 +68,8 @@ export default async function handler(req, res) {
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else if (sheetTitle === '蝦皮') {
-        nameColIndex = 2;      // C欄
-        warehouseColIndex = 7; // H欄
+        nameColIndex = 1;      // B欄（姓名）
+        warehouseColIndex = 7; // H欄（倉別）
         warehouseColIndex2 = null;
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
@@ -77,12 +77,12 @@ export default async function handler(req, res) {
         continue;
       }
       
-      // 資訊欄位（加上 S 前綴）
+      // 資訊欄位
       const infoColumns = [];
       for (let j = infoStartCol; j <= infoEndCol && j < headers.length; j++) {
         const h = (headers[j] || '').toString().trim();
         if (h) {
-          infoColumns.push({ index: j, header: 'S' + h });
+          infoColumns.push({ index: j, header: h });
         }
       }
       
@@ -101,6 +101,7 @@ export default async function handler(req, res) {
       
       // 搜尋姓名，每個倉別只保留一筆
       const warehouseMap = new Map();
+      console.log(`Searching ${sheetTitle}: nameColIndex=${nameColIndex}, total rows=${rows.length}`);
       
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -108,6 +109,7 @@ export default async function handler(req, res) {
         
         // 姓名欄包含搜尋的姓名
         if (nameValue.includes(name)) {
+          console.log(`Found ${name} in ${sheetTitle} row ${i}: nameValue=${nameValue}`);
           // 取得倉別值（蝦皮使用 E+H 組合）
           let warehouseValue = (row[warehouseColIndex] || '').toString().trim();
           if (warehouseColIndex2 !== null) {

@@ -574,7 +574,7 @@ function App() {
                         disabled={loading}
                         className="px-6 py-3 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50"
                       >
-                        {date}
+                        {date.replace(/^[BD]:/, '')}
                       </button>
                     ))}
                   </div>
