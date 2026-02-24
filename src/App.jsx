@@ -646,7 +646,7 @@ function App() {
             <div ref={payslipRef} className="p-8 bg-white">
               <div className="text-center mb-8 pb-6 border-b-2 border-blue-600">
                 <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-1">宏盛薪資單</h2>
-                <p className="text-slate-400 text-sm">日期分頁：{payslipData.sheetTitle}</p>
+                <p className="text-slate-400 text-sm">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '')}</p>
               </div>
               <table className="w-full">
                 <tbody>
