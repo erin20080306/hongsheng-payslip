@@ -88,6 +88,7 @@ export default async function handler(req, res) {
       
       // 日期格式的欄位（如 2/16, 2/17, 3/1 等）
       const dateColumns = [];
+      console.log(`${sheetTitle} headers count: ${headers.length}, first 15 headers:`, headers.slice(0, 15));
       for (let j = 0; j < headers.length; j++) {
         const h = (headers[j] || '').toString().trim();
         // 檢查是否為日期格式 (如 2/16, 2/17, 3/1)
@@ -95,9 +96,13 @@ export default async function handler(req, res) {
           dateColumns.push({ index: j, header: h });
         }
       }
+      console.log(`${sheetTitle} dateColumns count: ${dateColumns.length}`);
       
       // 如果沒有日期欄位，跳過這個分頁
-      if (dateColumns.length === 0) continue;
+      if (dateColumns.length === 0) {
+        console.log(`${sheetTitle} skipped - no date columns found`);
+        continue;
+      }
       
       // 搜尋姓名，每個倉別只保留一筆
       const warehouseMap = new Map();
