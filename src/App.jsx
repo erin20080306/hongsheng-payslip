@@ -543,7 +543,7 @@ function App() {
                   <CalendarCheck size={24} className="text-green-600 group-hover:text-white" />
                 </div>
                 <div className="text-left">
-                  <div className="text-lg">報班查詢</div>
+                  <div className="text-lg">報班查詢（臨工查詢）</div>
                   <div className="text-sm opacity-60 font-normal">查看報班紀錄</div>
                 </div>
                 <ArrowRight size={20} className="ml-auto opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />

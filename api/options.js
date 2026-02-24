@@ -14,6 +14,9 @@ let cacheD = {
 
 // Check if sheet name contains date pattern (e.g., 2-19, 0219, 02-19, 0216-0222)
 function isDateSheet(sheetName) {
+  // 排除特定分頁
+  if (sheetName === '2026乾淨版') return false;
+  
   const patterns = [
     /^\d{1,2}-\d{1,2}$/,       // 2-19, 02-19
     /^\d{3,4}$/,               // 0219, 219
