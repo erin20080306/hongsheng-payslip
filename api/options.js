@@ -100,19 +100,25 @@ export default async function handler(req, res) {
       if (cacheD.data && (now - cacheD.timestamp) < cacheD.TTL) {
         dataD = cacheD.data;
       } else {
-        const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_D_ID });
-        const allSheets = spreadsheet.data.sheets || [];
-        const dateSheets = allSheets.map(s => s.properties.title).filter(isDateSheet);
+        try {
+          const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_D_ID });
+          const allSheets = spreadsheet.data.sheets || [];
+          console.log('SHEET_D all sheets:', allSheets.map(s => s.properties.title));
+          const dateSheets = allSheets.map(s => s.properties.title).filter(isDateSheet);
+          console.log('SHEET_D date sheets:', dateSheets);
 
-        if (dateSheets.length > 0) {
-          const ranges = dateSheets.map(title => `'${title}'!A:B`);
-          const batchResponse = await sheets.spreadsheets.values.batchGet({
-            spreadsheetId: SHEET_D_ID,
-            ranges: ranges,
-          });
-          dataD = { dateSheets, valueRanges: batchResponse.data.valueRanges || [], sheetId: 'D' };
-          cacheD.data = dataD;
-          cacheD.timestamp = now;
+          if (dateSheets.length > 0) {
+            const ranges = dateSheets.map(title => `'${title}'!A:B`);
+            const batchResponse = await sheets.spreadsheets.values.batchGet({
+              spreadsheetId: SHEET_D_ID,
+              ranges: ranges,
+            });
+            dataD = { dateSheets, valueRanges: batchResponse.data.valueRanges || [], sheetId: 'D' };
+            cacheD.data = dataD;
+            cacheD.timestamp = now;
+          }
+        } catch (err) {
+          console.error('SHEET_D error:', err.message);
         }
       }
 
