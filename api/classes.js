@@ -107,7 +107,14 @@ export default async function handler(req, res) {
       
       // 搜尋姓名，每個倉別只保留一筆
       const warehouseMap = new Map();
-      console.log(`Searching ${sheetTitle}: nameColIndex=${nameColIndex}, total rows=${rows.length}`);
+      let foundCount = 0;
+      const sampleNames = [];
+      
+      for (let i = 1; i < rows.length && i <= 10; i++) {
+        const row = rows[i];
+        sampleNames.push(row[nameColIndex] || '');
+      }
+      debug.push({ sheet: sheetTitle, nameColIndex, searchName: name, sampleNames });
       
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -115,7 +122,7 @@ export default async function handler(req, res) {
         
         // 姓名欄包含搜尋的姓名
         if (nameValue.includes(name)) {
-          console.log(`Found ${name} in ${sheetTitle} row ${i}: nameValue=${nameValue}`);
+          foundCount++;
           // 取得倉別值（蝦皮使用 E+H 組合）
           let warehouseValue = (row[warehouseColIndex] || '').toString().trim();
           if (warehouseColIndex2 !== null) {
