@@ -231,7 +231,7 @@ function App() {
       if (data.error) {
         setError(data.error);
       } else {
-        setClassesData(data.data);
+        setClassesData(data.results || data.data);
         setStep('classes');
       }
     } catch (err) {
@@ -310,7 +310,7 @@ function App() {
       if (data.error) {
         setError(data.error);
       } else {
-        setClassesData(data.data);
+        setClassesData(data.results || data.data);
         setStep('classes');
       }
     } catch (err) {
