@@ -59,19 +59,21 @@ export default async function handler(req, res) {
       const headers = rows[0] || [];
       
       // 根據分頁設定欄位對應
-      // 酷澎：B欄=姓名(索引1), J欄=倉別(索引9)
-      // 蝦皮：C欄=姓名(索引2), H欄=倉別(索引7)
-      let nameColIndex, warehouseColIndex, warehouseColIndex2, infoStartCol, infoEndCol;
+      // 酷澎：B欄=姓名(索引1), E欄=班別(索引4), J欄=倉別(索引9)
+      // 蝦皮：C欄=姓名(索引2), E欄=班別(索引4), H欄=倉別(索引7)
+      let nameColIndex, warehouseColIndex, classColIndex, groupKeyColIndex, infoStartCol, infoEndCol;
       if (sheetTitle === '酷澎') {
         nameColIndex = 1;      // B欄
-        warehouseColIndex = 9; // J欄
-        warehouseColIndex2 = null;
+        classColIndex = 4;     // E欄（班別）
+        warehouseColIndex = 9; // J欄（倉別）
+        groupKeyColIndex = 9;  // J欄用於分組
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else if (sheetTitle === '蝦皮') {
         nameColIndex = 2;      // C欄（姓名）
+        classColIndex = 4;     // E欄（班別）
         warehouseColIndex = 7; // H欄（倉別）
-        warehouseColIndex2 = null;
+        groupKeyColIndex = 7;  // H欄用於分組
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else {
@@ -105,8 +107,8 @@ export default async function handler(req, res) {
         continue;
       }
       
-      // 搜尋姓名，保留所有符合的記錄（即使姓名相同但日期不同）
-      const matchedRows = [];
+      // 搜尋姓名，按 E欄(班別) + 倉別欄 分組
+      const groupedRows = new Map(); // key: E欄+倉別欄, value: { rows, registrations }
       let foundCount = 0;
       const sampleNames = [];
       
@@ -123,42 +125,62 @@ export default async function handler(req, res) {
         // 姓名欄包含搜尋的姓名
         if (nameValue.includes(name)) {
           foundCount++;
-          // 取得倉別值（蝦皮使用 E+H 組合）
-          let warehouseValue = (row[warehouseColIndex] || '').toString().trim();
-          if (warehouseColIndex2 !== null) {
-            const warehouse2 = (row[warehouseColIndex2] || '').toString().trim();
-            warehouseValue = warehouseValue + (warehouse2 ? '-' + warehouse2 : '');
+          // 取得班別值 (E欄)
+          const classValue = (row[classColIndex] || '').toString().trim();
+          // 取得倉別值
+          const warehouseValue = (row[warehouseColIndex] || '').toString().trim();
+          
+          // 分組 key: E欄(班別) + 倉別欄
+          const groupKey = `${classValue}|${warehouseValue}`;
+          
+          if (!groupedRows.has(groupKey)) {
+            groupedRows.set(groupKey, { 
+              row, 
+              warehouseValue, 
+              classValue,
+              allRegistrations: []
+            });
           }
           
-          // 保留所有符合的記錄
-          matchedRows.push({ row, warehouseValue, rowIndex: i });
+          // 收集該行的日期欄位資料
+          const rowRegistrations = dateColumns.map(col => ({
+            date: col.header,
+            value: (row[col.index] || '').toString().trim(),
+            registered: (row[col.index] || '').toString().toLowerCase().includes('v')
+          }));
+          
+          groupedRows.get(groupKey).allRegistrations.push(rowRegistrations);
         }
       }
 
-      // 處理所有符合的記錄
-      for (const { row: foundRow, warehouseValue } of matchedRows) {
+      // 處理分組後的記錄
+      for (const [groupKey, { row: foundRow, warehouseValue, allRegistrations }] of groupedRows) {
         // 確認姓名欄確實包含搜尋的姓名
         const actualName = (foundRow[nameColIndex] || '').toString().trim();
         if (!actualName.includes(name)) continue;
         
-        // E-J 欄資訊（加上 S 前綴）
+        // E-J 欄資訊
         const info = infoColumns.map(col => ({
           label: col.header,
           value: (foundRow[col.index] || '').toString().trim()
         }));
         
-        // 日期欄位的資料
-        const registrations = dateColumns.map(col => ({
-          date: col.header,
-          value: (foundRow[col.index] || '').toString().trim(),
-          registered: (foundRow[col.index] || '').toString().toLowerCase().includes('v')
-        }));
+        // 合併所有行的日期欄位資料（如果任一行有 v，則標記為已報名）
+        const mergedRegistrations = dateColumns.map((col, idx) => {
+          const hasRegistered = allRegistrations.some(regs => regs[idx]?.registered);
+          const values = allRegistrations.map(regs => regs[idx]?.value).filter(v => v);
+          return {
+            date: col.header,
+            value: values.join(', ') || '',
+            registered: hasRegistered
+          };
+        });
 
         results.push({
           sheetName: sheetTitle,
           warehouse: warehouseValue,
           info: info,
-          registrations
+          registrations: mergedRegistrations
         });
       }
     }
