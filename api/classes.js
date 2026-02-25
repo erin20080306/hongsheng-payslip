@@ -105,8 +105,8 @@ export default async function handler(req, res) {
         continue;
       }
       
-      // 搜尋姓名，每個倉別只保留一筆
-      const warehouseMap = new Map();
+      // 搜尋姓名，保留所有符合的記錄（即使姓名相同但日期不同）
+      const matchedRows = [];
       let foundCount = 0;
       const sampleNames = [];
       
@@ -130,15 +130,13 @@ export default async function handler(req, res) {
             warehouseValue = warehouseValue + (warehouse2 ? '-' + warehouse2 : '');
           }
           
-          // 每個倉別只保留第一筆
-          if (!warehouseMap.has(warehouseValue)) {
-            warehouseMap.set(warehouseValue, row);
-          }
+          // 保留所有符合的記錄
+          matchedRows.push({ row, warehouseValue, rowIndex: i });
         }
       }
 
-      // 處理每個倉別的資料
-      for (const [warehouseValue, foundRow] of warehouseMap) {
+      // 處理所有符合的記錄
+      for (const { row: foundRow, warehouseValue } of matchedRows) {
         // 確認姓名欄確實包含搜尋的姓名
         const actualName = (foundRow[nameColIndex] || '').toString().trim();
         if (!actualName.includes(name)) continue;
