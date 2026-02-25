@@ -667,7 +667,7 @@ function App() {
                         disabled={loading}
                         className="px-6 py-3 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50"
                       >
-                        {date.replace(/^[BD]:/, '')}
+                        {date.replace(/^[BD]:/, '').replace(/:\d+$/, '')}
                       </button>
                     ))}
                   </div>
@@ -720,7 +720,7 @@ function App() {
             <div ref={payslipRef} className="p-8 bg-white">
               <div className="text-center mb-8 pb-6 border-b-2 border-blue-600">
                 <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-1">宏盛薪資單</h2>
-                <p className="text-slate-500 text-lg font-bold">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '')}</p>
+                <p className="text-slate-500 text-lg font-bold">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '').replace(/:\d+$/, '')}</p>
               </div>
               <table className="w-full">
                 <tbody>

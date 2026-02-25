@@ -86,11 +86,25 @@ export default async function handler(req, res) {
         for (let idx = 0; idx < dataB.valueRanges.length; idx++) {
           const sheetTitle = dataB.dateSheets[idx];
           const rows = dataB.valueRanges[idx].values || [];
+          // 收集同一分頁中相同姓名的所有行（A欄不同）
+          const matchedRows = [];
           for (let i = 1; i < rows.length; i++) {
+            const colA = (rows[i][0] || '').toString().trim();
             const colB = (rows[i][1] || '').toString().trim();
             if (colB.includes(name)) {
-              allDates.add(`B:${sheetTitle}`);
-              break;
+              matchedRows.push({ rowIndex: i, colA });
+            }
+          }
+          // 如果有多筆，加上第N筆標記
+          if (matchedRows.length === 1) {
+            allDates.add(`B:${sheetTitle}`);
+          } else if (matchedRows.length > 1) {
+            for (let j = 0; j < matchedRows.length; j++) {
+              if (j === 0) {
+                allDates.add(`B:${sheetTitle}:${matchedRows[j].rowIndex}`);
+              } else {
+                allDates.add(`B:${sheetTitle}第${j + 1}筆:${matchedRows[j].rowIndex}`);
+              }
             }
           }
         }
@@ -129,11 +143,25 @@ export default async function handler(req, res) {
         for (let idx = 0; idx < dataD.valueRanges.length; idx++) {
           const sheetTitle = dataD.dateSheets[idx];
           const rows = dataD.valueRanges[idx].values || [];
+          // 收集同一分頁中相同姓名的所有行（A欄不同）
+          const matchedRows = [];
           for (let i = 1; i < rows.length; i++) {
+            const colA = (rows[i][0] || '').toString().trim();
             const colB = (rows[i][1] || '').toString().trim();
             if (colB.includes(name)) {
-              allDates.add(`D:${sheetTitle}`);
-              break;
+              matchedRows.push({ rowIndex: i, colA });
+            }
+          }
+          // 如果有多筆，加上第N筆標記
+          if (matchedRows.length === 1) {
+            allDates.add(`D:${sheetTitle}`);
+          } else if (matchedRows.length > 1) {
+            for (let j = 0; j < matchedRows.length; j++) {
+              if (j === 0) {
+                allDates.add(`D:${sheetTitle}:${matchedRows[j].rowIndex}`);
+              } else {
+                allDates.add(`D:${sheetTitle}第${j + 1}筆:${matchedRows[j].rowIndex}`);
+              }
             }
           }
         }

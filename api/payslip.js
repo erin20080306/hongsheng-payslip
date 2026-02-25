@@ -37,9 +37,10 @@ export default async function handler(req, res) {
     const SHEET_B_ID = process.env.SHEET_B_ID;
     const SHEET_D_ID = process.env.SHEET_D_ID;
 
-    // 解析 sheetTitle，格式可能是 "B:0216-0222" 或 "D:0216-0222" 或舊格式 "0216-0222"
+    // 解析 sheetTitle，格式可能是 "B:0216-0222" 或 "D:0216-0222" 或 "B:0124:5" (帶行號) 或 "B:0124第2筆:6"
     let targetSheetId = SHEET_B_ID;
     let actualSheetTitle = sheetTitle;
+    let specifiedRowIndex = null;
     
     if (sheetTitle.startsWith('B:')) {
       targetSheetId = SHEET_B_ID;
@@ -47,6 +48,13 @@ export default async function handler(req, res) {
     } else if (sheetTitle.startsWith('D:')) {
       targetSheetId = SHEET_D_ID;
       actualSheetTitle = sheetTitle.substring(2);
+    }
+    
+    // 檢查是否有指定行號（格式：sheetTitle:rowIndex 或 sheetTitle第N筆:rowIndex）
+    const rowIndexMatch = actualSheetTitle.match(/^(.+):(\d+)$/);
+    if (rowIndexMatch) {
+      actualSheetTitle = rowIndexMatch[1].replace(/第\d+筆$/, ''); // 移除「第N筆」後綴
+      specifiedRowIndex = parseInt(rowIndexMatch[2], 10);
     }
 
     // Read A-Z columns from the specified sheet
@@ -66,15 +74,21 @@ export default async function handler(req, res) {
     let rowIndex = -1;
     let headerRow = rows[0] || [];
 
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const colB = (row[1] || '').toString().trim();
+    // 如果有指定行號，直接使用該行
+    if (specifiedRowIndex !== null && specifiedRowIndex < rows.length) {
+      targetRow = rows[specifiedRowIndex];
+      rowIndex = specifiedRowIndex;
+    } else {
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const colB = (row[1] || '').toString().trim();
 
-      // 使用姓名匹配 B 欄（包含姓名即可）
-      if (name && colB.includes(name.trim())) {
-        targetRow = row;
-        rowIndex = i;
-        break;
+        // 使用姓名匹配 B 欄（包含姓名即可）
+        if (name && colB.includes(name.trim())) {
+          targetRow = row;
+          rowIndex = i;
+          break;
+        }
       }
     }
 
