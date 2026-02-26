@@ -1,6 +1,9 @@
 import { google } from 'googleapis';
 
-const COLUMNS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+// 顯示 A-Z + AA 欄（27欄），不顯示 AB 以後的欄位
+const COLUMNS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','AA'];
+// 排除的欄位：M(12), N(13), O(14), P(15)
+const EXCLUDED_COLUMNS = ['M', 'N', 'O', 'P'];
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
@@ -37,7 +40,7 @@ export default async function handler(req, res) {
     const SHEET_B_ID = process.env.SHEET_B_ID;
     const SHEET_D_ID = process.env.SHEET_D_ID;
 
-    // 解析 sheetTitle，格式可能是 "B:0216-0222" 或 "D:0216-0222" 或 "B:0124:5" (帶行號) 或 "B:0124第2筆:6"
+    // 解析 sheetTitle，格式：B:sheetTitle 或 B:sheetTitle:rowIndex 或 B:sheetTitle第N筆:rowIndex
     let targetSheetId = SHEET_B_ID;
     let actualSheetTitle = sheetTitle;
     let specifiedRowIndex = null;
@@ -57,10 +60,10 @@ export default async function handler(req, res) {
       specifiedRowIndex = parseInt(rowIndexMatch[2], 10);
     }
 
-    // Read A-Z columns from the specified sheet
+    // Read A-AA columns from the specified sheet (27 columns)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: targetSheetId,
-      range: `'${actualSheetTitle}'!A:Z`,
+      range: `'${actualSheetTitle}'!A1:AA1000`,
     });
 
     const rows = response.data.values || [];
@@ -96,17 +99,34 @@ export default async function handler(req, res) {
       return res.status(200).json({ error: '找不到該員工的薪資資料' });
     }
 
-    // Build data object with column letters as keys
-    const data = {};
-    for (let i = 0; i < COLUMNS.length && i < targetRow.length; i++) {
-      data[COLUMNS[i]] = targetRow[i] || '';
-    }
+    // 嚴格限制只處理前 27 欄（A-Z + AA），截斷多餘的資料
+    const maxColumns = 27;
+    const limitedTargetRow = targetRow.slice(0, maxColumns);
+    const limitedHeaderRow = headerRow.slice(0, maxColumns);
 
-    // Also include headers if first row looks like headers
+    // 記錄已出現的標題，用於過濾重複標題的欄位
+    const seenHeaders = new Set();
+
+    // Build data object with column letters as keys (excluding M-P columns and duplicate headers)
+    const data = {};
     const headers = {};
-    if (headerRow.length > 0 && rowIndex > 0) {
-      for (let i = 0; i < COLUMNS.length && i < headerRow.length; i++) {
-        headers[COLUMNS[i]] = headerRow[i] || '';
+    for (let i = 0; i < maxColumns && i < COLUMNS.length; i++) {
+      const col = COLUMNS[i];
+      if (EXCLUDED_COLUMNS.includes(col)) continue;
+      
+      const headerValue = (limitedHeaderRow[i] || '').toString().trim();
+      
+      // 如果標題已經出現過，跳過這個欄位（過濾重複的姓名欄等）
+      if (headerValue && seenHeaders.has(headerValue)) {
+        continue;
+      }
+      if (headerValue) {
+        seenHeaders.add(headerValue);
+      }
+      
+      data[col] = (limitedTargetRow[i] !== undefined ? limitedTargetRow[i] : '') || '';
+      if (rowIndex > 0 && headerValue) {
+        headers[col] = headerValue;
       }
     }
 

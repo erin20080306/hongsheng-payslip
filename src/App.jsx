@@ -659,17 +659,21 @@ function App() {
                     <h3 className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-3">識別碼：{opt.aKey}</h3>
                   )}
                   <p className="text-sm text-slate-500 mb-3">共 {opt.dates.length} 筆薪資單</p>
-                  <div className="flex flex-wrap gap-3">
-                    {visibleDates.map((date) => (
-                      <button
-                        key={date}
-                        onClick={() => fetchPayslip(opt.aKey, date)}
-                        disabled={loading}
-                        className="px-6 py-3 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-xl font-bold text-slate-700 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50"
-                      >
-                        {date.replace(/^[BD]:/, '').replace(/:\d+$/, '')}
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-3 gap-3">
+                    {visibleDates.map((date) => {
+                      const displayText = date.replace(/^[BD]:/, '').replace(/:\d+$/, '');
+                      const isLong = displayText.length > 8;
+                      return (
+                        <button
+                          key={date}
+                          onClick={() => fetchPayslip(opt.aKey, date)}
+                          disabled={loading}
+                          className={`py-3 px-2 bg-[#d4e5f7] hover:bg-[#b8d4f0] text-slate-700 rounded-xl font-bold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 text-center ${isLong ? 'text-xs' : 'text-sm'}`}
+                        >
+                          {displayText}
+                        </button>
+                      );
+                    })}
                   </div>
                   {hasMore && (
                     <button
@@ -719,7 +723,7 @@ function App() {
             {/* 薪資單內容 */}
             <div ref={payslipRef} className="p-8 bg-white">
               <div className="text-center mb-8 pb-6 border-b-2 border-blue-600">
-                <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-1">宏盛薪資單</h2>
+                <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-1">宏盛週領薪資單</h2>
                 <p className="text-slate-500 text-lg font-bold">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '').replace(/:\d+$/, '')}</p>
               </div>
               <table className="w-full">
