@@ -44,13 +44,16 @@ export default async function handler(req, res) {
     let targetSheetId = SHEET_B_ID;
     let actualSheetTitle = sheetTitle;
     let specifiedRowIndex = null;
+    let sheetType = 'B'; // B = 宏盛薪資單, D = 宏盛週領薪資單
     
     if (sheetTitle.startsWith('B:')) {
       targetSheetId = SHEET_B_ID;
       actualSheetTitle = sheetTitle.substring(2);
+      sheetType = 'B';
     } else if (sheetTitle.startsWith('D:')) {
       targetSheetId = SHEET_D_ID;
       actualSheetTitle = sheetTitle.substring(2);
+      sheetType = 'D';
     }
     
     // 檢查是否有指定行號（格式：sheetTitle:rowIndex 或 sheetTitle第N筆:rowIndex）
@@ -130,8 +133,15 @@ export default async function handler(req, res) {
       }
     }
 
+    // 根據使用的 spreadsheetId 判斷標題
+    // SHEET_D_ID (1T2YDiKFTLnKgFgSvSfc4yvjBr9kboq-0CedKHIAedSM) = 宏盛週領薪資單
+    // SHEET_B_ID (1EBYVvYLQEe01H3ZDX1yozz_3S5o4_r6tGR479U5Fhjc) = 宏盛薪資單
+    const isWeeklyPayslip = targetSheetId === SHEET_D_ID;
+    
     return res.status(200).json({
       sheetTitle,
+      sheetType,
+      isWeeklyPayslip,
       rowIndex: rowIndex + 1, // 1-indexed for display
       data,
       headers: Object.keys(headers).length > 0 ? headers : null

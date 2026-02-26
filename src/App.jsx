@@ -723,7 +723,9 @@ function App() {
             {/* 薪資單內容 */}
             <div ref={payslipRef} className="p-8 bg-white">
               <div className="text-center mb-8 pb-6 border-b-2 border-blue-600">
-                <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-1">宏盛週領薪資單</h2>
+                <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-1">
+                  {payslipData.isWeeklyPayslip ? '宏盛週領薪資單' : '宏盛薪資單'}
+                </h2>
                 <p className="text-slate-500 text-lg font-bold">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '').replace(/:\d+$/, '')}</p>
               </div>
               <table className="w-full">
