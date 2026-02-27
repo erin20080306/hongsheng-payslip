@@ -177,6 +177,7 @@ function App() {
   const fetchPayslip = async (aKey, sheetTitle) => {
     setLoading(true);
     setError('');
+    setSelectedKey({ aKey, sheetTitle });
     try {
       const res = await fetch(`${API_BASE}/api/payslip`, {
         method: 'POST',
@@ -601,8 +602,8 @@ function App() {
                   <Wallet size={24} className="text-blue-600 group-hover:text-white" />
                 </div>
                 <div className="text-left">
-                  <div className="text-lg">薪資查詢</div>
-                  <div className="text-sm opacity-60 font-normal">查看您的薪資單</div>
+                  <div className="text-lg">{loading ? '查詢中...' : '薪資查詢'}</div>
+                  <div className="text-sm opacity-60 font-normal">{loading ? '請稍候' : '查看您的薪資單'}</div>
                 </div>
                 <ArrowRight size={20} className="ml-auto opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </button>
@@ -616,8 +617,8 @@ function App() {
                   <CalendarCheck size={24} className="text-green-600 group-hover:text-white" />
                 </div>
                 <div className="text-left">
-                  <div className="text-lg">報班查詢</div>
-                  <div className="text-sm opacity-60 font-normal">臨工查詢 / 查看報班紀錄</div>
+                  <div className="text-lg">{loading ? '查詢中...' : '報班查詢'}</div>
+                  <div className="text-sm opacity-60 font-normal">{loading ? '請稍候' : '臨工查詢 / 查看報班紀錄'}</div>
                 </div>
                 <ArrowRight size={20} className="ml-auto opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </button>
@@ -670,7 +671,7 @@ function App() {
                           disabled={loading}
                           className={`py-3 px-2 bg-[#d4e5f7] hover:bg-[#b8d4f0] text-slate-700 rounded-xl font-bold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 text-center ${isLong ? 'text-xs' : 'text-sm'}`}
                         >
-                          {displayText}
+                          {loading && selectedKey?.sheetTitle === date ? '查詢中...' : displayText}
                         </button>
                       );
                     })}
