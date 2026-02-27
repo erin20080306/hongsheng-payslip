@@ -871,8 +871,10 @@ function App() {
 
       {/* Loading overlay */}
       {loading && step !== 'login' && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
           <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="mt-4 text-lg font-bold text-slate-700">查詢中...</p>
+          <p className="text-sm text-slate-500">請稍候</p>
         </div>
       )}
     </div>
