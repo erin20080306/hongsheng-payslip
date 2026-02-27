@@ -365,21 +365,27 @@ function App() {
   };
 
   const handleGoToPayslip = async () => {
-    // 如果已經預載入了資料，直接使用
-    if (options?.keys?.length > 0) {
-      if (options.keys.length === 1 && options.keys[0].dates.length === 1) {
-        // 如果薪資單內容也已預載入，直接顯示
-        if (payslipData) {
-          setStep('payslip');
-          return;
+    setLoading(true);
+    setError('');
+    try {
+      // 如果已經預載入了資料，直接使用
+      if (options?.keys?.length > 0) {
+        if (options.keys.length === 1 && options.keys[0].dates.length === 1) {
+          // 如果薪資單內容也已預載入，直接顯示
+          if (payslipData) {
+            setStep('payslip');
+            return;
+          }
+          await fetchPayslip(options.keys[0].aKey, options.keys[0].dates[0]);
+        } else {
+          setStep('options');
         }
-        await fetchPayslip(options.keys[0].aKey, options.keys[0].dates[0]);
-      } else {
-        setStep('options');
+        return;
       }
-      return;
+      await fetchOptions();
+    } finally {
+      setLoading(false);
     }
-    await fetchOptions();
   };
 
   const handleGoToClasses = async () => {
