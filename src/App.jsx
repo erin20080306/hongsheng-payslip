@@ -367,36 +367,34 @@ function App() {
   const handleGoToPayslip = async () => {
     setLoading(true);
     setError('');
-    try {
-      // 如果已經預載入了資料，直接使用
-      if (options?.keys?.length > 0) {
-        if (options.keys.length === 1 && options.keys[0].dates.length === 1) {
-          // 如果薪資單內容也已預載入，直接顯示
-          if (payslipData) {
-            setStep('payslip');
-            return;
-          }
-          await fetchPayslip(options.keys[0].aKey, options.keys[0].dates[0]);
-        } else {
-          setStep('options');
+    // 如果已經預載入了資料，直接使用
+    if (options?.keys?.length > 0) {
+      if (options.keys.length === 1 && options.keys[0].dates.length === 1) {
+        // 如果薪資單內容也已預載入，直接顯示
+        if (payslipData) {
+          setLoading(false);
+          setStep('payslip');
+          return;
         }
-        return;
+        await fetchPayslip(options.keys[0].aKey, options.keys[0].dates[0]);
+      } else {
+        setLoading(false);
+        setStep('options');
       }
-      await fetchOptions();
-    } finally {
-      setLoading(false);
+      return;
     }
+    await fetchOptions();
   };
 
   const handleGoToClasses = async () => {
+    setLoading(true);
+    setError('');
     // 如果已經預載入了資料，直接使用
     if (classesData?.length > 0) {
+      setLoading(false);
       setStep('classes');
       return;
     }
-    
-    setLoading(true);
-    setError('');
     try {
       const res = await fetch(`${API_BASE}/api/classes`, {
         method: 'POST',
