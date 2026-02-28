@@ -136,7 +136,8 @@ export default async function handler(req, res) {
     // 根據使用的 spreadsheetId 判斷標題
     // SHEET_D_ID (1T2YDiKFTLnKgFgSvSfc4yvjBr9kboq-0CedKHIAedSM) = 宏盛週領薪資單
     // SHEET_B_ID (1EBYVvYLQEe01H3ZDX1yozz_3S5o4_r6tGR479U5Fhjc) = 宏盛薪資單
-    const isWeeklyPayslip = targetSheetId === SHEET_D_ID;
+    // 使用 sheetType 來判斷，因為 sheetType 是根據 sheetTitle 前綴設定的
+    const isWeeklyPayslip = sheetType === 'D';
     
     return res.status(200).json({
       sheetTitle,
