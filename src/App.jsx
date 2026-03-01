@@ -221,7 +221,8 @@ function App() {
         style: { margin: 0, padding: '32px' },
       });
       
-      const filename = `薪資單_${selectedKey?.sheetTitle || 'payslip'}.png`;
+      const dateStr = (selectedKey?.sheetTitle || 'payslip').replace(/^[BD]:/, '').replace(/:\d+$/, '');
+      const filename = `薪資單_${name.trim()}_${dateStr}.png`;
       const isMobile = isMobileDevice();
 
       if (isMobile) {
