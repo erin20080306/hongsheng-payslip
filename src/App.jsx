@@ -190,7 +190,6 @@ function App() {
       if (data.error) {
         setError(data.error);
       } else {
-        console.log('Payslip data received:', { sheetType: data.sheetType, isWeeklyPayslip: data.isWeeklyPayslip, sheetTitle: data.sheetTitle });
         setPayslipData(data);
         setSelectedKey({ aKey, sheetTitle });
         setStep('payslip');

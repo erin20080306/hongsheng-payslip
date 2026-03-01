@@ -139,8 +139,6 @@ export default async function handler(req, res) {
     // 使用 sheetType 來判斷，因為 sheetType 是根據 sheetTitle 前綴設定的
     const isWeeklyPayslip = sheetType === 'D';
     
-    console.log('Payslip API response:', { sheetTitle, sheetType, isWeeklyPayslip });
-    
     return res.status(200).json({
       sheetTitle,
       sheetType,
