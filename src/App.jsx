@@ -17,6 +17,7 @@ function App() {
   const [isFocused, setIsFocused] = useState('');
   const payslipRef = useRef(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [savePreviewUrl, setSavePreviewUrl] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchName, setSearchName] = useState('');
   const [expandedDates, setExpandedDates] = useState({});
@@ -202,6 +203,13 @@ function App() {
     }
   };
 
+  // 判斷是否為行動裝置
+  const isMobileDevice = () => {
+    return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      ('ontouchstart' in window) ||
+      (navigator.maxTouchPoints > 0);
+  };
+
   const handleDownloadPng = async () => {
     if (!payslipRef.current) return;
     setIsDownloading(true);
@@ -214,49 +222,50 @@ function App() {
       });
       
       const filename = `薪資單_${selectedKey?.sheetTitle || 'payslip'}.png`;
-      
-      // 將 dataUrl 轉換為 Blob
-      const byteString = atob(dataUrl.split(',')[1]);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      const blob = new Blob([ab], { type: 'image/png' });
-      
-      // 判斷是否支援 Web Share API（iOS / 部分 Android）
-      let canShare = false;
-      try {
-        if (navigator.share && navigator.canShare) {
-          const file = new File([blob], filename, { type: 'image/png' });
-          canShare = navigator.canShare({ files: [file] });
-        }
-      } catch (e) {
-        canShare = false;
-      }
+      const isMobile = isMobileDevice();
 
-      if (canShare) {
-        // 使用 Web Share API（iOS 必須用此方式，<a download> 會跳離 PWA）
+      if (isMobile) {
+        // === 手機：絕對不用 <a download>，iOS 會跳離 PWA ===
+        // 將 dataUrl 轉換為 Blob
+        const byteString = atob(dataUrl.split(',')[1]);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: 'image/png' });
+
+        // 嘗試 Web Share API
+        let shared = false;
         try {
-          const file = new File([blob], filename, { type: 'image/png' });
-          await navigator.share({ files: [file], title: filename });
+          if (navigator.share && navigator.canShare) {
+            const file = new File([blob], filename, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], title: filename });
+              shared = true;
+            }
+          }
         } catch (shareErr) {
-          // 用戶取消分享 → 不做任何事，留在原頁面
-          console.log('Share cancelled:', shareErr.name);
+          // 用戶取消分享 → 留在原頁面
+          if (shareErr.name === 'AbortError') {
+            shared = true; // 視為已處理，不再走其他路徑
+          }
+          console.log('Share:', shareErr.name);
+        }
+
+        if (!shared) {
+          // 手機無 Share API → 顯示圖片在 app 內，讓用戶長按儲存
+          setSavePreviewUrl(dataUrl);
         }
       } else {
-        // 傳統下載方式（電腦 / 舊 Android）
-        const url = URL.createObjectURL(blob);
+        // === 電腦：使用 <a download>，安全無問題 ===
         const link = document.createElement('a');
-        link.href = url;
+        link.href = dataUrl;
         link.download = filename;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        setTimeout(() => {
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }, 300);
+        setTimeout(() => document.body.removeChild(link), 300);
       }
     } catch (err) {
       console.error('Download error:', err);
@@ -882,6 +891,22 @@ function App() {
           HONG SHENG Premium Service
         </p>
       </div>
+
+      {/* 手機長按儲存圖片 overlay */}
+      {savePreviewUrl && (
+        <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-4 max-w-sm w-full max-h-[85vh] overflow-auto">
+            <p className="text-center text-sm font-bold text-slate-700 mb-3">📱 長按圖片即可儲存</p>
+            <img src={savePreviewUrl} alt="薪資單" className="w-full rounded-lg" />
+            <button
+              onClick={() => setSavePreviewUrl(null)}
+              className="mt-4 w-full py-3 bg-slate-900 text-white font-bold rounded-xl"
+            >
+              關閉
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Loading overlay */}
       {loading && step !== 'login' && !isDownloading && (
