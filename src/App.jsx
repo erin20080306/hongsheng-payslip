@@ -16,6 +16,7 @@ function App() {
   const [classesData, setClassesData] = useState(null);
   const [isFocused, setIsFocused] = useState('');
   const payslipRef = useRef(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchName, setSearchName] = useState('');
   const [expandedDates, setExpandedDates] = useState({});
@@ -203,36 +204,53 @@ function App() {
 
   const handleDownloadPng = async () => {
     if (!payslipRef.current) return;
-    setLoading(true);
+    setIsDownloading(true);
     try {
       const dataUrl = await toPng(payslipRef.current, {
         backgroundColor: '#ffffff',
         pixelRatio: 2,
+        cacheBust: true,
+        style: { margin: 0, padding: '32px' },
       });
       
       const filename = `薪資單_${selectedKey?.sheetTitle || 'payslip'}.png`;
       
       // 將 dataUrl 轉換為 Blob
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
+      const byteString = atob(dataUrl.split(',')[1]);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: 'image/png' });
       
       // 嘗試使用 Web Share API（適用於手機）
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })) {
-        const file = new File([blob], filename, { type: 'image/png' });
-        await navigator.share({
-          files: [file],
-          title: filename,
-        });
-      } else {
-        // 使用傳統下載方式
+      let shared = false;
+      try {
+        if (navigator.share && navigator.canShare) {
+          const file = new File([blob], filename, { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+            shared = true;
+          }
+        }
+      } catch (shareErr) {
+        console.log('Share API failed, using download:', shareErr);
+      }
+      
+      if (!shared) {
+        // 傳統下載方式（相容舊 Android）
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = filename;
+        link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 300);
       }
     } catch (err) {
       // 備用方案：直接使用 dataUrl
@@ -244,12 +262,15 @@ function App() {
         const link = document.createElement('a');
         link.href = dataUrl;
         link.download = `薪資單_${selectedKey?.sheetTitle || 'payslip'}.png`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
         link.click();
+        setTimeout(() => document.body.removeChild(link), 300);
       } catch (e) {
         alert('下載失敗，請截圖保存');
       }
     } finally {
-      setLoading(false);
+      setIsDownloading(false);
     }
   };
 
@@ -717,34 +738,35 @@ function App() {
               <div className="flex-1"></div>
               <button
                 onClick={handleDownloadPng}
-                disabled={loading}
+                disabled={isDownloading}
                 className="flex items-center gap-2 px-5 py-2 bg-slate-900 hover:bg-blue-600 rounded-xl font-bold text-white transition-all disabled:opacity-50"
               >
                 <Download size={18} />
-                <span>{loading ? '處理中...' : '下載'}</span>
+                <span>{isDownloading ? '處理中...' : '下載'}</span>
               </button>
             </div>
 
             {/* 薪資單內容 */}
             <div ref={payslipRef} className="p-8 bg-white">
-              <div className="text-center mb-8 pb-6 border-b-2 border-blue-600">
-                <h2 className="text-2xl font-black text-slate-900 tracking-[0.1em] mb-1">
+              <div className="text-center mb-6 pb-5 border-b-[3px] border-slate-800">
+                <h2 className="text-2xl font-black text-slate-900 tracking-[0.15em] mb-1">
                   {payslipData.isWeeklyPayslip ? '宏盛週領薪資單' : '宏盛薪資單'}
                 </h2>
-                <p className="text-slate-500 text-lg font-bold">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '').replace(/:\d+$/, '')}</p>
+                <p className="text-slate-500 text-base font-bold">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '').replace(/:\d+$/, '')}</p>
               </div>
-              <table className="w-full">
+              <table className="w-full border-collapse border border-slate-300">
                 <tbody>
-                  {Object.entries(payslipData.data).map(([col, value]) => {
+                  {Object.entries(payslipData.data).map(([col, value], idx) => {
                     const header = payslipData.headers?.[col];
                     if (!value && !header) return null;
+                    const isTotal = header && (header.includes('總計') || header.includes('合計') || header === '實領');
                     return (
-                      <tr key={col} className="border-b border-slate-50">
-                        <th className="py-3 px-4 text-left text-sm font-bold text-slate-500 bg-slate-50/50 w-[40%]">
+                      <tr key={col} className={`border-b border-slate-200 ${isTotal ? 'bg-blue-50' : idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}`}>
+                        <th className="py-2.5 px-4 text-left text-sm font-bold text-slate-600 border-r border-slate-200 w-[38%]">
                           {header || `欄位 ${col}`}
                         </th>
-                        <td className="py-3 px-4 text-slate-800 font-medium">
-                          {value}
+                        <td className={`py-2.5 px-4 text-sm ${isTotal ? 'font-black text-blue-700 text-base' : value ? 'font-semibold text-slate-800' : 'text-slate-300'}`}>
+                          {value || '-'}
                         </td>
                       </tr>
                     );
@@ -870,7 +892,7 @@ function App() {
       </div>
 
       {/* Loading overlay */}
-      {loading && step !== 'login' && (
+      {loading && step !== 'login' && !isDownloading && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
           <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
           <p className="mt-4 text-lg font-bold text-slate-700">查詢中...</p>
