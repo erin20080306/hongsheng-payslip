@@ -224,22 +224,28 @@ function App() {
       }
       const blob = new Blob([ab], { type: 'image/png' });
       
-      // 嘗試使用 Web Share API（適用於手機）
-      let shared = false;
+      // 判斷是否支援 Web Share API（iOS / 部分 Android）
+      let canShare = false;
       try {
         if (navigator.share && navigator.canShare) {
           const file = new File([blob], filename, { type: 'image/png' });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: filename });
-            shared = true;
-          }
+          canShare = navigator.canShare({ files: [file] });
         }
-      } catch (shareErr) {
-        console.log('Share API failed, using download:', shareErr);
+      } catch (e) {
+        canShare = false;
       }
-      
-      if (!shared) {
-        // 傳統下載方式（相容舊 Android）
+
+      if (canShare) {
+        // 使用 Web Share API（iOS 必須用此方式，<a download> 會跳離 PWA）
+        try {
+          const file = new File([blob], filename, { type: 'image/png' });
+          await navigator.share({ files: [file], title: filename });
+        } catch (shareErr) {
+          // 用戶取消分享 → 不做任何事，留在原頁面
+          console.log('Share cancelled:', shareErr.name);
+        }
+      } else {
+        // 傳統下載方式（電腦 / 舊 Android）
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -253,22 +259,8 @@ function App() {
         }, 300);
       }
     } catch (err) {
-      // 備用方案：直接使用 dataUrl
-      try {
-        const dataUrl = await toPng(payslipRef.current, {
-          backgroundColor: '#ffffff',
-          pixelRatio: 2,
-        });
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = `薪資單_${selectedKey?.sheetTitle || 'payslip'}.png`;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => document.body.removeChild(link), 300);
-      } catch (e) {
-        alert('下載失敗，請截圖保存');
-      }
+      console.error('Download error:', err);
+      alert('下載失敗，請截圖保存');
     } finally {
       setIsDownloading(false);
     }
