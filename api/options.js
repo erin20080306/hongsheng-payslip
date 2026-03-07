@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     // 整理結果，按 sheetId 分組
     const datesArray = Array.from(allDates);
     const dates = datesArray.map(d => d.split(':')[1]).sort();
-    const keys = dates.length > 0 ? [{ aKey: name, dates: datesArray.sort() }] : [];
+    const keys = dates.length > 0 ? [{ aKey: name, dates: datesArray.sort().reverse() }] : [];
 
     if (keys.length === 0) {
       return res.status(200).json({ keys: [], error: '找不到該姓名的薪資資料' });
