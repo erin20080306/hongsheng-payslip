@@ -45,20 +45,23 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const SHEET_B_ID = process.env.SHEET_B_ID;
     const SHEET_D_ID = process.env.SHEET_D_ID;
+    const SHEET_E_ID = process.env.SHEET_E_ID;
 
     const allDates = new Set();
 
-    // 同時請求 Sheet B 和 Sheet D 的分頁清單（並行加速）
-    const [spreadsheetB, spreadsheetD] = await Promise.all([
+    // 同時請求 Sheet B、D、E 的分頁清單（並行加速）
+    const [spreadsheetB, spreadsheetD, spreadsheetE] = await Promise.all([
       SHEET_B_ID ? sheets.spreadsheets.get({ spreadsheetId: SHEET_B_ID }).catch(() => null) : null,
       SHEET_D_ID ? sheets.spreadsheets.get({ spreadsheetId: SHEET_D_ID }).catch(err => { console.error('SHEET_D error:', err.message); return null; }) : null,
+      SHEET_E_ID ? sheets.spreadsheets.get({ spreadsheetId: SHEET_E_ID }).catch(err => { console.error('SHEET_E error:', err.message); return null; }) : null,
     ]);
 
-    // 並行取得 Sheet B 和 Sheet D 的資料（加速）
+    // 並行取得 Sheet B、D、E 的資料（加速）
     const dataSheetsB = spreadsheetB ? (spreadsheetB.data.sheets || []).map(s => s.properties.title).filter(isDateSheet) : [];
     const dataSheetsD = spreadsheetD ? (spreadsheetD.data.sheets || []).map(s => s.properties.title).filter(isDateSheet) : [];
+    const dataSheetsE = spreadsheetE ? (spreadsheetE.data.sheets || []).map(s => s.properties.title).filter(isDateSheet) : [];
 
-    const [batchB, batchD] = await Promise.all([
+    const [batchB, batchD, batchE] = await Promise.all([
       dataSheetsB.length > 0 ? sheets.spreadsheets.values.batchGet({
         spreadsheetId: SHEET_B_ID,
         ranges: dataSheetsB.map(title => `'${title}'!A:B`),
@@ -66,6 +69,10 @@ export default async function handler(req, res) {
       dataSheetsD.length > 0 ? sheets.spreadsheets.values.batchGet({
         spreadsheetId: SHEET_D_ID,
         ranges: dataSheetsD.map(title => `'${title}'!A:B`),
+      }).catch(() => null) : null,
+      dataSheetsE.length > 0 ? sheets.spreadsheets.values.batchGet({
+        spreadsheetId: SHEET_E_ID,
+        ranges: dataSheetsE.map(title => `'${title}'!A:B`),
       }).catch(() => null) : null,
     ]);
 
@@ -123,6 +130,36 @@ export default async function handler(req, res) {
               allDates.add(`D:${sheetTitle}:${matchedRows[j].rowIndex}`);
             } else {
               allDates.add(`D:${sheetTitle}第${j + 1}筆:${matchedRows[j].rowIndex}`);
+            }
+          }
+        }
+      }
+    }
+
+    // 處理 Sheet E（顯示方式與 B 相同）
+    if (batchE) {
+      const valueRangesE = batchE.data.valueRanges || [];
+      for (let idx = 0; idx < valueRangesE.length; idx++) {
+        const sheetTitle = dataSheetsE[idx];
+        const rows = valueRangesE[idx].values || [];
+        // 收集同一分頁中相同姓名的所有行（A欄不同）
+        const matchedRows = [];
+        for (let i = 1; i < rows.length; i++) {
+          const colA = (rows[i][0] || '').toString().trim();
+          const colB = (rows[i][1] || '').toString().trim();
+          if (colB.includes(name)) {
+            matchedRows.push({ rowIndex: i, colA });
+          }
+        }
+        // 如果有多筆，加上第N筆標記
+        if (matchedRows.length === 1) {
+          allDates.add(`E:${sheetTitle}`);
+        } else if (matchedRows.length > 1) {
+          for (let j = 0; j < matchedRows.length; j++) {
+            if (j === 0) {
+              allDates.add(`E:${sheetTitle}:${matchedRows[j].rowIndex}`);
+            } else {
+              allDates.add(`E:${sheetTitle}第${j + 1}筆:${matchedRows[j].rowIndex}`);
             }
           }
         }

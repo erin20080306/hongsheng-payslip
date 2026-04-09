@@ -39,6 +39,7 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const SHEET_B_ID = process.env.SHEET_B_ID;
     const SHEET_D_ID = process.env.SHEET_D_ID;
+    const SHEET_E_ID = process.env.SHEET_E_ID;
 
     // 解析 sheetTitle，格式：B:sheetTitle 或 B:sheetTitle:rowIndex 或 B:sheetTitle第N筆:rowIndex
     let targetSheetId = SHEET_B_ID;
@@ -54,6 +55,10 @@ export default async function handler(req, res) {
       targetSheetId = SHEET_D_ID;
       actualSheetTitle = sheetTitle.substring(2);
       sheetType = 'D';
+    } else if (sheetTitle.startsWith('E:')) {
+      targetSheetId = SHEET_E_ID;
+      actualSheetTitle = sheetTitle.substring(2);
+      sheetType = 'E';
     }
     
     // 檢查是否有指定行號（格式：sheetTitle:rowIndex 或 sheetTitle第N筆:rowIndex）

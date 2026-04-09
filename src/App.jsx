@@ -221,7 +221,7 @@ function App() {
         style: { margin: 0, padding: '32px' },
       });
       
-      const dateStr = (selectedKey?.sheetTitle || 'payslip').replace(/^[BD]:/, '').replace(/:\d+$/, '');
+      const dateStr = (selectedKey?.sheetTitle || 'payslip').replace(/^[BDE]:/, '').replace(/:\d+$/, '');
       const filename = `薪資單_${name.trim()}_${dateStr}.png`;
       const isMobile = isMobileDevice();
 
@@ -689,7 +689,7 @@ function App() {
                   <p className="text-sm text-slate-500 mb-3">共 {opt.dates.length} 筆薪資單</p>
                   <div className="grid grid-cols-3 gap-3">
                     {visibleDates.map((date) => {
-                      const displayText = date.replace(/^[BD]:/, '').replace(/:\d+$/, '');
+                      const displayText = date.replace(/^[BDE]:/, '').replace(/:\d+$/, '');
                       const isLong = displayText.length > 8;
                       return (
                         <button
@@ -754,7 +754,7 @@ function App() {
                 <h2 className="text-2xl font-black text-slate-900 tracking-[0.15em] mb-1">
                   {payslipData.isWeeklyPayslip ? '宏盛週領薪資單' : '宏盛薪資單'}
                 </h2>
-                <p className="text-slate-500 text-base font-bold">日期：{payslipData.sheetTitle.replace(/^[BD]:/, '').replace(/:\d+$/, '')}</p>
+                <p className="text-slate-500 text-base font-bold">日期：{payslipData.sheetTitle.replace(/^[BDE]:/, '').replace(/:\d+$/, '')}</p>
               </div>
               <table className="w-full border-collapse border border-slate-300">
                 <tbody>
