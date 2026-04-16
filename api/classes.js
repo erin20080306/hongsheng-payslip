@@ -65,16 +65,18 @@ export default async function handler(req, res) {
       // 根據分頁設定欄位對應
       // 酷澎：F欄=姓名(索引5), G欄=身分證(索引6), E欄=班別(索引4), J欄=倉別(索引9)
       // 蝦皮：K欄=姓名(索引10), O欄=身分證字號(索引14), E欄=班別(索引4), H欄=倉別(索引7)
-      let matchColIndex, warehouseColIndex, classColIndex, groupKeyColIndex, infoStartCol, infoEndCol;
+      let idColIndex, nameMatchColIndex, warehouseColIndex, classColIndex, groupKeyColIndex, infoStartCol, infoEndCol;
       if (sheetTitle === '酷澎') {
-        matchColIndex = idNumber ? 6 : 5;  // 有身分證用G欄，否則用F欄（姓名）
+        idColIndex = 6;        // G欄（身分證）
+        nameMatchColIndex = 5; // F欄（姓名）
         classColIndex = 4;     // E欄（班別）
         warehouseColIndex = 9; // J欄（倉別）
         groupKeyColIndex = 9;  // J欄用於分組
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else if (sheetTitle === '蝦皮') {
-        matchColIndex = idNumber ? 14 : 10; // 有身分證用O欄，否則用K欄（姓名）
+        idColIndex = 14;        // O欄（身分證字號）
+        nameMatchColIndex = 10; // K欄（姓名）
         classColIndex = 4;     // E欄（班別）
         warehouseColIndex = 7; // H欄（倉別）
         groupKeyColIndex = 7;  // H欄用於分組
@@ -118,16 +120,26 @@ export default async function handler(req, res) {
       
       for (let i = 1; i < rows.length && i <= 10; i++) {
         const row = rows[i];
-        sampleNames.push(row[matchColIndex] || '');
+        sampleNames.push(row[nameMatchColIndex] || '');
       }
-      debug.push({ sheet: sheetTitle, matchColIndex, searchValue: matchValue, sampleNames });
+      debug.push({ sheet: sheetTitle, idColIndex, nameMatchColIndex, searchValue: matchValue, sampleNames });
       
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        const nameValue = (row[matchColIndex] || '').toString().trim();
         
-        // 身分證欄精準匹配
-        if (nameValue === matchValue) {
+        let matched = false;
+        if (idNumber) {
+          // 一般員工：身分證精準匹配 + 姓名精準匹配（雙重驗證）
+          const rowId = (row[idColIndex] || '').toString().trim();
+          const rowName = (row[nameMatchColIndex] || '').toString().trim();
+          matched = rowId === idNumber && rowName === name;
+        } else {
+          // 管理者：只用姓名精準匹配
+          const rowName = (row[nameMatchColIndex] || '').toString().trim();
+          matched = rowName === matchValue;
+        }
+        
+        if (matched) {
           foundCount++;
           // 取得班別值 (E欄)
           const classValue = (row[classColIndex] || '').toString().trim();
@@ -160,8 +172,17 @@ export default async function handler(req, res) {
       // 處理分組後的記錄
       for (const [groupKey, { row: foundRow, warehouseValue, allRegistrations }] of groupedRows) {
         // 確認姓名欄確實包含搜尋的姓名
-        const actualName = (foundRow[matchColIndex] || '').toString().trim();
-        if (actualName !== matchValue) continue;
+        // 再次確認匹配
+        let recheck = false;
+        if (idNumber) {
+          const rowId = (foundRow[idColIndex] || '').toString().trim();
+          const rowName = (foundRow[nameMatchColIndex] || '').toString().trim();
+          recheck = rowId === idNumber && rowName === name;
+        } else {
+          const rowName = (foundRow[nameMatchColIndex] || '').toString().trim();
+          recheck = rowName === matchValue;
+        }
+        if (!recheck) continue;
         
         // E-J 欄資訊
         const info = infoColumns.map(col => ({
