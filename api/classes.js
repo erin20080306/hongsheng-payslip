@@ -59,18 +59,18 @@ export default async function handler(req, res) {
       const headers = rows[0] || [];
       
       // 根據分頁設定欄位對應
-      // 酷澎：B欄=姓名(索引1), E欄=班別(索引4), J欄=倉別(索引9)
-      // 蝦皮：C欄=姓名(索引2), E欄=班別(索引4), H欄=倉別(索引7)
+      // 酷澎：F欄=姓名(索引5), E欄=班別(索引4), J欄=倉別(索引9)
+      // 蝦皮：K欄=姓名(索引10), E欄=班別(索引4), H欄=倉別(索引7)
       let nameColIndex, warehouseColIndex, classColIndex, groupKeyColIndex, infoStartCol, infoEndCol;
       if (sheetTitle === '酷澎') {
-        nameColIndex = 1;      // B欄
+        nameColIndex = 5;      // F欄
         classColIndex = 4;     // E欄（班別）
         warehouseColIndex = 9; // J欄（倉別）
         groupKeyColIndex = 9;  // J欄用於分組
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else if (sheetTitle === '蝦皮') {
-        nameColIndex = 2;      // C欄（姓名）
+        nameColIndex = 10;     // K欄（姓名）
         classColIndex = 4;     // E欄（班別）
         warehouseColIndex = 7; // H欄（倉別）
         groupKeyColIndex = 7;  // H欄用於分組
@@ -122,8 +122,8 @@ export default async function handler(req, res) {
         const row = rows[i];
         const nameValue = (row[nameColIndex] || '').toString().trim();
         
-        // 姓名欄包含搜尋的姓名
-        if (nameValue.includes(name)) {
+        // 姓名欄精準匹配
+        if (nameValue === name) {
           foundCount++;
           // 取得班別值 (E欄)
           const classValue = (row[classColIndex] || '').toString().trim();
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
       for (const [groupKey, { row: foundRow, warehouseValue, allRegistrations }] of groupedRows) {
         // 確認姓名欄確實包含搜尋的姓名
         const actualName = (foundRow[nameColIndex] || '').toString().trim();
-        if (!actualName.includes(name)) continue;
+        if (actualName !== name) continue;
         
         // E-J 欄資訊
         const info = infoColumns.map(col => ({
