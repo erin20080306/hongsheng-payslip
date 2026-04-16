@@ -51,7 +51,7 @@ function App() {
   }, []);
 
   // 背景預先載入資料（不阻塞 UI）
-  const prefetchData = async (userName) => {
+  const prefetchData = async (userName, userIdNumber) => {
     try {
       // 同時預先載入薪資選項和報班資料
       const [optionsRes, classesRes] = await Promise.all([
@@ -63,7 +63,7 @@ function App() {
         fetch(`${API_BASE}/api/classes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: userName }),
+          body: JSON.stringify({ name: userName, idNumber: userIdNumber }),
         }),
       ]);
       
@@ -134,7 +134,7 @@ function App() {
         } else {
           setStep('menu');
           // 背景預先載入薪資選項和報班資料
-          prefetchData(trimmedName);
+          prefetchData(trimmedName, trimmedId);
         }
       } else {
         setError(data.error || '驗證失敗');
@@ -423,7 +423,7 @@ function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: name.trim(), idNumber: idNumber.trim() }),
       });
       const data = await res.json();
 

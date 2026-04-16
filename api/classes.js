@@ -10,10 +10,14 @@ export default async function handler(req, res) {
   let body = req.body;
   if (typeof body === 'string') body = JSON.parse(body);
   const name = (body?.name || '').trim();
+  const idNumber = (body?.idNumber || '').trim();
 
-  if (!name) {
-    return res.status(400).json({ error: '請提供姓名' });
+  if (!name && !idNumber) {
+    return res.status(400).json({ error: '請提供姓名或身分證號' });
   }
+
+  // 用於匹配的識別碼（優先用身分證）
+  const matchValue = idNumber || name;
 
   try {
     const auth = new google.auth.GoogleAuth({
@@ -59,18 +63,18 @@ export default async function handler(req, res) {
       const headers = rows[0] || [];
       
       // 根據分頁設定欄位對應
-      // 酷澎：F欄=姓名(索引5), E欄=班別(索引4), J欄=倉別(索引9)
-      // 蝦皮：K欄=姓名(索引10), E欄=班別(索引4), H欄=倉別(索引7)
+      // 酷澎：G欄=身分證(索引6), E欄=班別(索引4), J欄=倉別(索引9)
+      // 蝦皮：O欄=身分證字號(索引14), E欄=班別(索引4), H欄=倉別(索引7)
       let nameColIndex, warehouseColIndex, classColIndex, groupKeyColIndex, infoStartCol, infoEndCol;
       if (sheetTitle === '酷澎') {
-        nameColIndex = 5;      // F欄
+        nameColIndex = 6;      // G欄（身分證）
         classColIndex = 4;     // E欄（班別）
         warehouseColIndex = 9; // J欄（倉別）
         groupKeyColIndex = 9;  // J欄用於分組
         infoStartCol = 4;      // E欄
         infoEndCol = 9;        // J欄
       } else if (sheetTitle === '蝦皮') {
-        nameColIndex = 10;     // K欄（姓名）
+        nameColIndex = 14;     // O欄（身分證字號）
         classColIndex = 4;     // E欄（班別）
         warehouseColIndex = 7; // H欄（倉別）
         groupKeyColIndex = 7;  // H欄用於分組
@@ -122,8 +126,8 @@ export default async function handler(req, res) {
         const row = rows[i];
         const nameValue = (row[nameColIndex] || '').toString().trim();
         
-        // 姓名欄精準匹配
-        if (nameValue === name) {
+        // 身分證欄精準匹配
+        if (nameValue === matchValue) {
           foundCount++;
           // 取得班別值 (E欄)
           const classValue = (row[classColIndex] || '').toString().trim();
@@ -157,7 +161,7 @@ export default async function handler(req, res) {
       for (const [groupKey, { row: foundRow, warehouseValue, allRegistrations }] of groupedRows) {
         // 確認姓名欄確實包含搜尋的姓名
         const actualName = (foundRow[nameColIndex] || '').toString().trim();
-        if (actualName !== name) continue;
+        if (actualName !== matchValue) continue;
         
         // E-J 欄資訊
         const info = infoColumns.map(col => ({
