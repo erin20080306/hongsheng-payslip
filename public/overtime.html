@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#eff6ff" />
+    <meta name="description" content="宏盛異常工時查詢" />
+    <title>異常工時查詢｜宏盛查詢</title>
+    <style>
+      :root {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+        color: #0f172a;
+        background: #f8fbff;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 12% 4%, rgba(219, 234, 254, 0.95), transparent 30%),
+          radial-gradient(circle at 92% 92%, rgba(224, 231, 255, 0.8), transparent 32%),
+          #f8fbff;
+      }
+
+      button { font: inherit; }
+
+      .page {
+        width: min(760px, 100%);
+        margin: 0 auto;
+        padding: 24px 18px 48px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 24px;
+      }
+
+      .back-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        border: 1px solid #dbeafe;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        color: #475569;
+        cursor: pointer;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        flex: 0 0 auto;
+        border-radius: 17px;
+        background: white;
+        color: #2563eb;
+        font-size: 24px;
+        font-weight: 950;
+        font-style: italic;
+        box-shadow: 0 14px 36px rgba(37, 99, 235, 0.13);
+      }
+
+      .brand-copy { min-width: 0; }
+      .brand-copy strong {
+        display: block;
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: 0.08em;
+      }
+      .brand-copy span {
+        display: block;
+        margin-top: 3px;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+      }
+
+      .hero {
+        margin-bottom: 20px;
+        padding: 24px;
+        border: 1px solid rgba(219, 234, 254, 0.92);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.07);
+      }
+
+      .hero-eyebrow {
+        margin: 0 0 7px;
+        color: #2563eb;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(28px, 7vw, 38px);
+        font-weight: 950;
+        letter-spacing: 0.04em;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 15px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .status {
+        padding: 42px 22px;
+        border: 1px solid #e2e8f0;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.88);
+        color: #64748b;
+        text-align: center;
+        font-weight: 800;
+      }
+
+      .spinner {
+        width: 38px;
+        height: 38px;
+        margin: 0 auto 14px;
+        border: 4px solid #dbeafe;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .error {
+        padding: 18px;
+        border: 1px solid #fecaca;
+        border-radius: 20px;
+        background: #fef2f2;
+        color: #b91c1c;
+        text-align: left;
+        font-weight: 800;
+        line-height: 1.65;
+      }
+
+      .results-summary {
+        margin: 0 0 12px;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .cards {
+        display: grid;
+        gap: 18px;
+      }
+
+      .record-card {
+        overflow: hidden;
+        border: 1px solid #dbeafe;
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.07);
+      }
+
+      .record-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 17px 20px;
+        background: linear-gradient(135deg, #eff6ff, #eef2ff);
+      }
+
+      .record-header strong {
+        font-size: 17px;
+        font-weight: 950;
+      }
+
+      .record-header span {
+        color: #3b82f6;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .field-list { margin: 0; }
+
+      .field-row {
+        display: grid;
+        grid-template-columns: minmax(92px, 34%) 1fr;
+        gap: 14px;
+        padding: 15px 20px;
+        border-top: 1px solid #eef2f7;
+      }
+
+      .field-row dt {
+        margin: 0;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 850;
+        line-height: 1.6;
+      }
+
+      .field-row dd {
+        margin: 0;
+        color: #0f172a;
+        font-size: 15px;
+        font-weight: 850;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+
+      .footer {
+        margin-top: 34px;
+        color: #cbd5e1;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.36em;
+      }
+
+      @media (max-width: 520px) {
+        .page { padding: 16px 14px 40px; }
+        .hero { padding: 21px 18px; border-radius: 24px; }
+        .field-row { grid-template-columns: 1fr; gap: 4px; padding: 14px 18px; }
+        .record-header { padding: 16px 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="topbar">
+        <button id="backButton" class="back-button" type="button" aria-label="返回上一頁">←</button>
+        <div class="brand">
+          <div class="brand-mark">H</div>
+          <div class="brand-copy">
+            <strong>宏盛查詢</strong>
+            <span>SMART MANAGEMENT</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="hero">
+        <p class="hero-eyebrow">WORK HOUR REVIEW</p>
+        <h1>異常工時查詢</h1>
+        <div class="hero-meta">
+          <span id="employeePill" class="pill">員工：讀取中</span>
+          <span id="countPill" class="pill" hidden></span>
+        </div>
+      </section>
+
+      <section id="content" aria-live="polite">
+        <div class="status">
+          <div class="spinner" aria-hidden="true"></div>
+          正在查詢異常工時資料…
+        </div>
+      </section>
+
+      <p class="footer">HONG SHENG PREMIUM SERVICE</p>
+    </main>
+
+    <script src="/overtime-page.js?v=20260711-2"></script>
+  </body>
+</html>

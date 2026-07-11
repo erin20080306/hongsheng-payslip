@@ -20,6 +20,10 @@ function normalize(value) {
   return (value || '').toString().trim();
 }
 
+function normalizeForMatch(value) {
+  return normalize(value).replace(/\s+/g, '').toLocaleLowerCase('zh-TW');
+}
+
 function createSheetsClient() {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
     throw new Error('Google 服務帳號環境變數尚未設定');
@@ -99,15 +103,19 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: '時數異常分頁目前沒有資料' });
     }
 
-    const defaultHeaders = ['A欄', 'B欄', '姓名', 'D欄', 'E欄', 'F欄', 'G欄', 'H欄'];
-    const headers = Array.from({ length: 8 }, (_, index) => normalize(values[0]?.[index]) || defaultHeaders[index]);
+    const defaultHeaders = Array.from({ length: 8 }, (_, index) => `欄位 ${index + 1}`);
+    const headers = Array.from(
+      { length: 8 },
+      (_, index) => normalize(values[0]?.[index]) || defaultHeaders[index],
+    );
+    const normalizedQueryName = normalizeForMatch(queryName);
     const rows = values
       .slice(1)
-      .filter((row) => normalize(row[2]) === queryName)
+      .filter((row) => normalizeForMatch(row[2]).includes(normalizedQueryName))
       .map((row) => Array.from({ length: 8 }, (_, index) => normalize(row[index])));
 
     if (rows.length === 0) {
-      return res.status(404).json({ error: `找不到 ${queryName} 的異常工時資料` });
+      return res.status(404).json({ error: `找不到包含「${queryName}」的異常工時資料` });
     }
 
     return res.status(200).json({
