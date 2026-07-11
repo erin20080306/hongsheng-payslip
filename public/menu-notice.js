@@ -38,13 +38,14 @@
       ?.parentElement || null;
   }
 
-  function removeAllNotices() {
-    document.querySelectorAll(`[${NOTICE_ATTRIBUTE}]`).forEach((notice) => notice.remove());
+  function removeNoticesOutside(targetCard) {
+    document.querySelectorAll(`[${NOTICE_ATTRIBUTE}]`).forEach((notice) => {
+      if (!targetCard || !targetCard.contains(notice)) notice.remove();
+    });
   }
 
-  function injectIntoOptionsPage() {
-    const card = findCardByHeading('選擇薪資單');
-    if (!card || card.querySelector(`[${NOTICE_ATTRIBUTE}]`)) return false;
+  function ensureOptionsNotice(card) {
+    if (card.querySelector(`[${NOTICE_ATTRIBUTE}]`)) return;
 
     const instruction = Array.from(card.querySelectorAll('p'))
       .find((paragraph) => normalize(paragraph.textContent).includes('點選要查詢的薪資日期'));
@@ -56,28 +57,35 @@
       const heading = card.querySelector('h2');
       heading?.insertAdjacentElement('afterend', notice);
     }
-    return true;
   }
 
-  function injectNoDataNotice() {
-    if (!salaryHasNoData) return false;
-
-    const card = findCardByHeading('歡迎回來') || findCardByHeading('管理者查詢');
-    if (!card || card.querySelector(`[${NOTICE_ATTRIBUTE}]`)) return false;
+  function ensureNoDataNotice(card) {
+    if (card.querySelector(`[${NOTICE_ATTRIBUTE}]`)) return;
 
     const actions = card.querySelector('.space-y-4');
-    if (!actions) return false;
-
+    if (!actions) return;
     actions.parentElement?.insertBefore(createNotice(), actions);
-    return true;
   }
 
   function refreshNotice() {
-    removeAllNotices();
-    if (!salaryFlowActive) return;
+    if (!salaryFlowActive) {
+      removeNoticesOutside(null);
+      return;
+    }
 
-    if (injectIntoOptionsPage()) return;
-    injectNoDataNotice();
+    const optionsCard = findCardByHeading('選擇薪資單');
+    if (optionsCard) {
+      removeNoticesOutside(optionsCard);
+      ensureOptionsNotice(optionsCard);
+      return;
+    }
+
+    const menuCard = salaryHasNoData
+      ? (findCardByHeading('歡迎回來') || findCardByHeading('管理者查詢'))
+      : null;
+
+    removeNoticesOutside(menuCard);
+    if (menuCard) ensureNoDataNotice(menuCard);
   }
 
   window.fetch = async function payslipNoticeFetch(input, init = {}) {
@@ -115,7 +123,7 @@
     if (text.includes('報班查詢') || text.includes('查詢報班') || text.includes('異常工時查詢') || text.includes('登出')) {
       salaryFlowActive = false;
       salaryHasNoData = false;
-      removeAllNotices();
+      removeNoticesOutside(null);
     }
   });
 
