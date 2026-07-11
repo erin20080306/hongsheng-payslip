@@ -2,8 +2,10 @@
   'use strict';
 
   const AUTH_KEY = 'hongsheng_overtime_auth';
+  const RETURN_KEY = 'hongsheng_overtime_return_pending';
   const BUTTON_ATTRIBUTE = 'data-overtime-entry';
   const nativeFetch = window.fetch.bind(window);
+  let resumeStarted = false;
 
   function normalize(value) {
     return (value || '').toString().trim();
@@ -28,6 +30,57 @@
     );
   }
 
+  function setControlledInputValue(input, value) {
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    )?.set;
+
+    if (setter) {
+      setter.call(input, value);
+    } else {
+      input.value = value;
+    }
+
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function tryResumeSession() {
+    if (resumeStarted || sessionStorage.getItem(RETURN_KEY) !== '1') return;
+
+    const auth = readAuth();
+    if (!auth?.name || !auth?.idNumber) {
+      sessionStorage.removeItem(RETURN_KEY);
+      return;
+    }
+
+    const alreadyLoggedIn = findCardByHeading('歡迎回來') || findCardByHeading('管理者查詢');
+    if (alreadyLoggedIn) {
+      sessionStorage.removeItem(RETURN_KEY);
+      return;
+    }
+
+    const nameInput = document.querySelector('input[placeholder="請輸入姓名"]');
+    const idInput = document.querySelector('input[placeholder="請輸入身分證"]');
+    const form = nameInput?.closest('form');
+
+    if (!nameInput || !idInput || !form) return;
+
+    resumeStarted = true;
+    setControlledInputValue(nameInput, auth.name);
+    setControlledInputValue(idInput, auth.idNumber);
+    sessionStorage.removeItem(RETURN_KEY);
+
+    window.setTimeout(() => {
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+      } else {
+        form.querySelector('button[type="submit"]')?.click();
+      }
+    }, 80);
+  }
+
   window.fetch = async function hongshengFetch(input, init = {}) {
     const response = await nativeFetch(input, init);
 
@@ -43,6 +96,7 @@
           saveAuth(credentials, result.isAdmin);
         } else {
           sessionStorage.removeItem(AUTH_KEY);
+          sessionStorage.removeItem(RETURN_KEY);
         }
       }
     } catch (error) {
@@ -56,6 +110,7 @@
     const button = event.target.closest('button');
     if (button && normalize(button.textContent).includes('登出')) {
       sessionStorage.removeItem(AUTH_KEY);
+      sessionStorage.removeItem(RETURN_KEY);
     }
   });
 
@@ -66,6 +121,7 @@
       return;
     }
 
+    sessionStorage.setItem(RETURN_KEY, '1');
     const params = new URLSearchParams({ name: queryName });
     window.location.assign(`/overtime.html?${params.toString()}`);
   }
@@ -149,6 +205,8 @@
         actions.appendChild(createEntryButton('admin', adminCard));
       }
     }
+
+    tryResumeSession();
   }
 
   let scheduled = false;
@@ -164,5 +222,6 @@
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener('DOMContentLoaded', injectButtons);
+  window.addEventListener('pageshow', tryResumeSession);
   injectButtons();
 })();
