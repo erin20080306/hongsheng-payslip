@@ -2,7 +2,6 @@
   'use strict';
 
   const AUTH_KEY = 'hongsheng_overtime_auth';
-  const RETURN_KEY = 'hongsheng_overtime_return_pending';
   const content = document.getElementById('content');
   const employeePill = document.getElementById('employeePill');
   const countPill = document.getElementById('countPill');
@@ -224,8 +223,12 @@
   }
 
   backButton?.addEventListener('click', () => {
-    sessionStorage.setItem(RETURN_KEY, '1');
-    window.location.assign('/?resume=overtime');
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    window.location.assign('/');
   });
 
   loadData();
