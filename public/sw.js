@@ -1,6 +1,6 @@
 // 簡化版 Service Worker - 不快取任何內容，只做網路請求
 // 版本號：每次部署時更新此數字會觸發 SW 更新
-const SW_VERSION = '20260711-006';
+const SW_VERSION = '20260711-007';
 const CACHE_NAME = `hongsheng-${SW_VERSION}`;
 
 // 安裝時清除所有快取
