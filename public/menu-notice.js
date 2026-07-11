@@ -16,7 +16,7 @@
     notice.style.borderRadius = '16px';
     notice.style.background = '#fffbeb';
     notice.style.color = '#92400e';
-    notice.style.textAlign = 'center';
+    notice.style.textAlign = 'left';
     notice.style.fontSize = '14px';
     notice.style.fontWeight = '700';
     notice.style.lineHeight = '1.65';
