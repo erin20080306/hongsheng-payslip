@@ -10,7 +10,16 @@
   function createNotice() {
     const notice = document.createElement('div');
     notice.setAttribute(NOTICE_ATTRIBUTE, 'true');
-    notice.className = 'mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-bold leading-relaxed text-amber-800';
+    notice.style.marginBottom = '20px';
+    notice.style.padding = '12px 16px';
+    notice.style.border = '1px solid #fde68a';
+    notice.style.borderRadius = '16px';
+    notice.style.background = '#fffbeb';
+    notice.style.color = '#92400e';
+    notice.style.textAlign = 'center';
+    notice.style.fontSize = '14px';
+    notice.style.fontWeight = '700';
+    notice.style.lineHeight = '1.65';
 
     const strong = document.createElement('span');
     strong.textContent = '提醒：';
