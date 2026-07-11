@@ -3,7 +3,9 @@
 
   const AUTH_KEY = 'hongsheng_overtime_auth';
   const BUTTON_ATTRIBUTE = 'data-overtime-entry';
+  const OVERLAY_ID = 'hongsheng-overtime-page-overlay';
   const nativeFetch = window.fetch.bind(window);
+  let previousBodyOverflow = '';
 
   function normalize(value) {
     return (value || '').toString().trim();
@@ -52,12 +54,17 @@
     return response;
   };
 
-  document.addEventListener('click', (event) => {
-    const button = event.target.closest('button');
-    if (button && normalize(button.textContent).includes('登出')) {
-      sessionStorage.removeItem(AUTH_KEY);
+  function closeOvertimePage(fromHistory = false) {
+    const overlay = document.getElementById(OVERLAY_ID);
+    if (!overlay) return;
+
+    overlay.remove();
+    document.body.style.overflow = previousBodyOverflow;
+
+    if (!fromHistory && window.history.state?.hongshengOvertimeOverlay) {
+      window.history.back();
     }
-  });
+  }
 
   function openOvertimePage(queryName) {
     const auth = readAuth();
@@ -66,9 +73,61 @@
       return;
     }
 
-    const params = new URLSearchParams({ name: queryName });
-    window.location.assign(`/overtime.html?${params.toString()}`);
+    closeOvertimePage(true);
+
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const overlay = document.createElement('div');
+    overlay.id = OVERLAY_ID;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', '異常工時查詢');
+    Object.assign(overlay.style, {
+      position: 'fixed',
+      inset: '0',
+      zIndex: '99999',
+      background: '#f8fbff',
+    });
+
+    const iframe = document.createElement('iframe');
+    const params = new URLSearchParams({ name: queryName, embedded: '1' });
+    iframe.src = `/overtime.html?${params.toString()}`;
+    iframe.title = '異常工時查詢';
+    iframe.setAttribute('allow', 'clipboard-write');
+    Object.assign(iframe.style, {
+      width: '100%',
+      height: '100%',
+      border: '0',
+      display: 'block',
+      background: '#f8fbff',
+    });
+
+    overlay.appendChild(iframe);
+    document.body.appendChild(overlay);
+    window.history.pushState({ hongshengOvertimeOverlay: true }, '', window.location.href);
   }
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.data?.type === 'hongsheng-close-overtime') {
+      closeOvertimePage(false);
+    }
+  });
+
+  window.addEventListener('popstate', () => {
+    if (document.getElementById(OVERLAY_ID)) {
+      closeOvertimePage(true);
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (button && normalize(button.textContent).includes('登出')) {
+      sessionStorage.removeItem(AUTH_KEY);
+      closeOvertimePage(true);
+    }
+  });
 
   function createEntryButton(mode, card) {
     const button = document.createElement('button');
