@@ -223,8 +223,8 @@
   }
 
   backButton?.addEventListener('click', () => {
-    if (window.history.length > 1) {
-      window.history.back();
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'hongsheng-close-overtime' }, window.location.origin);
       return;
     }
 
