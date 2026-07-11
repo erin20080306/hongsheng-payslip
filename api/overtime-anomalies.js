@@ -95,7 +95,7 @@ export default async function handler(req, res) {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: TARGET_SPREADSHEET_ID,
-      range: `'${TARGET_SHEET_NAME}'!A:H`,
+      range: `'${TARGET_SHEET_NAME}'!A:AA`,
     });
 
     const values = response.data.values || [];
@@ -103,16 +103,27 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: '時數異常分頁目前沒有資料' });
     }
 
-    const defaultHeaders = Array.from({ length: 8 }, (_, index) => `欄位 ${index + 1}`);
-    const headers = Array.from(
-      { length: 8 },
-      (_, index) => normalize(values[0]?.[index]) || defaultHeaders[index],
+    const selectedColumns = [
+      { index: 0, fallback: '欄位 1' },
+      { index: 1, fallback: '欄位 2' },
+      { index: 2, fallback: '姓名' },
+      { index: 3, fallback: '欄位 4' },
+      { index: 4, fallback: '欄位 5' },
+      { index: 5, fallback: '欄位 6' },
+      { index: 6, fallback: '欄位 7' },
+      { index: 7, fallback: '欄位 8' },
+      { index: 26, fallback: 'AA欄' },
+    ];
+
+    const headers = selectedColumns.map(
+      ({ index, fallback }) => normalize(values[0]?.[index]) || fallback,
     );
+
     const normalizedQueryName = normalizeForMatch(queryName);
     const rows = values
       .slice(1)
       .filter((row) => normalizeForMatch(row[2]).includes(normalizedQueryName))
-      .map((row) => Array.from({ length: 8 }, (_, index) => normalize(row[index])));
+      .map((row) => selectedColumns.map(({ index }) => normalize(row[index])));
 
     if (rows.length === 0) {
       return res.status(404).json({ error: `找不到包含「${queryName}」的異常工時資料` });
