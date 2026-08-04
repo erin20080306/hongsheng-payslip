@@ -10,7 +10,7 @@ function parseDateHeader(raw) {
 
 // 班別正規化：不同分頁的班別名稱可能不同（如「建國晚班」與「晚班」其實同一班），
 // 統一對應到標準班別後再分組合併。順序需長者優先（大夜班 要在 大夜 之前）。
-const SHIFT_KEYWORDS = ['大夜班', '大夜', '早班', '晚班', '晚4', '夜10', '夜短'];
+const SHIFT_KEYWORDS = ['大夜班', '大夜', '早班', '晚八班', '晚班', '晚4', '夜10', '夜短'];
 function normalizeShift(classValue) {
   const s = (classValue || '').toString().replace(/\s/g, '');
   for (const kw of SHIFT_KEYWORDS) {
