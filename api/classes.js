@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       },
       '蝦皮報班': {
         output: '蝦皮',        // 與「蝦皮」合併
-        idColIndex: 14,        // O 身分證
+        idColIndex: 13,        // N 身分證
         nameMatchColIndex: 9,  // J 姓名
         classColIndex: 7,      // H 班別
         warehouseColIndex: 6,  // G 倉別
@@ -153,9 +153,10 @@ export default async function handler(req, res) {
 
         const classValue = (row[cfg.classColIndex] || '').toString().trim();
         const warehouseValue = (row[cfg.warehouseColIndex] || '').toString().trim();
-        // 蝦皮家族：同倉 + 同正規化班別合併（建國晚班≡晚班）；其他：班別|倉別
+        // 蝦皮家族（蝦皮 + 蝦皮報班）：同一查詢者的兩個分頁合併成一張卡片（僅以 output 當 key）
+        // 其他（酷澎）：維持 班別|倉別 分組
         const groupKey = cfg.mergeByShift
-          ? `${cfg.output}|${warehouseValue}|${normalizeShift(classValue)}`
+          ? `${cfg.output}`
           : `${cfg.output}|${classValue}|${warehouseValue}`;
 
         if (!mergedGroups.has(groupKey)) {
@@ -168,6 +169,9 @@ export default async function handler(req, res) {
           });
         }
         const g = mergedGroups.get(groupKey);
+        // 合併時補上倉別/班別的非空值（一個分頁可能缺）
+        if (!g.warehouse && warehouseValue) g.warehouse = warehouseValue;
+        if (!g.classValue && classValue) g.classValue = classValue;
 
         // 合併資訊欄位（依「顯示位置」對齊）：標題取蝦皮，值取蝦皮報班，另一方遞補空缺
         infoColumns.forEach((col, slot) => {
