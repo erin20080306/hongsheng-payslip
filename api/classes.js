@@ -8,6 +8,17 @@ function parseDateHeader(raw) {
   return `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}`;
 }
 
+// 班別正規化：不同分頁的班別名稱可能不同（如「建國晚班」與「晚班」其實同一班），
+// 統一對應到標準班別後再分組合併。順序需長者優先（大夜班 要在 大夜 之前）。
+const SHIFT_KEYWORDS = ['大夜班', '大夜', '早班', '晚班', '晚4', '夜10', '夜短'];
+function normalizeShift(classValue) {
+  const s = (classValue || '').toString().replace(/\s/g, '');
+  for (const kw of SHIFT_KEYWORDS) {
+    if (s.includes(kw)) return kw;
+  }
+  return s;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   
@@ -60,6 +71,7 @@ export default async function handler(req, res) {
         classColIndex: 4,      // E 班別
         warehouseColIndex: 7,  // H 倉別
         infoColumns: [4, 5, 6, 7, 8, 9], // E~J
+        mergeByShift: true, // 同倉 + 同正規化班別 合併（建國晚班≡晚班）
       },
       '蝦皮報班': {
         output: '蝦皮',        // 與「蝦皮」合併
@@ -69,6 +81,7 @@ export default async function handler(req, res) {
         warehouseColIndex: 6,  // G 倉別
         // 顯示欄位 E~J 依序對應「蝦皮報班」的 H,E,F,G,H,I 欄
         infoColumns: [7, 4, 5, 6, 7, 8],
+        mergeByShift: true, // 同倉 + 同正規化班別 合併（建國晚班≡晚班）
       },
     };
 
@@ -140,7 +153,10 @@ export default async function handler(req, res) {
 
         const classValue = (row[cfg.classColIndex] || '').toString().trim();
         const warehouseValue = (row[cfg.warehouseColIndex] || '').toString().trim();
-        const groupKey = `${cfg.output}|${classValue}|${warehouseValue}`;
+        // 蝦皮家族：同倉 + 同正規化班別合併（建國晚班≡晚班）；其他：班別|倉別
+        const groupKey = cfg.mergeByShift
+          ? `${cfg.output}|${warehouseValue}|${normalizeShift(classValue)}`
+          : `${cfg.output}|${classValue}|${warehouseValue}`;
 
         if (!mergedGroups.has(groupKey)) {
           mergedGroups.set(groupKey, {
