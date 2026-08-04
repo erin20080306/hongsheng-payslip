@@ -104,6 +104,8 @@ export default async function handler(req, res) {
         const h = (headers[j] || '').toString().trim();
         infoColumns.push({ index: j, header: h });
       }
+      // 蝦皮報班優先（合併時覆蓋蝦皮的同位置欄位）
+      const infoPriority = sheetTitle === '蝦皮報班' ? 2 : 1;
 
       // 日期報名欄位（動態偵測，支援 2/16 與 08/04 (二) 等格式，統一轉為 M/D）
       const dateColumns = [];
@@ -144,24 +146,30 @@ export default async function handler(req, res) {
             sheetName: cfg.output,
             warehouse: warehouseValue,
             classValue,
-            info: [],           // { label, value }
+            infoSlots: [],      // 依顯示位置 slot -> { label, value, prio }
             dates: new Map(),   // date(M/D) -> { values:Set, registered:bool }
           });
         }
         const g = mergedGroups.get(groupKey);
 
-        // 合併資訊欄位（依 label 去重，保留第一個非空值）
-        for (const col of infoColumns) {
+        // 合併資訊欄位（依「顯示位置」對齊，蝦皮報班優先，避免同標題被覆蓋或漏顯示）
+        infoColumns.forEach((col, slot) => {
           const label = col.header;
-          if (!label) continue;
           const value = (row[col.index] || '').toString().trim();
-          const existing = g.info.find(x => x.label === label);
-          if (existing) {
-            if (!existing.value && value) existing.value = value;
+          const cur = g.infoSlots[slot];
+          if (!cur) {
+            g.infoSlots[slot] = { label, value, prio: infoPriority };
+          } else if (infoPriority > cur.prio) {
+            g.infoSlots[slot] = {
+              label: label || cur.label,
+              value: value || cur.value,
+              prio: infoPriority,
+            };
           } else {
-            g.info.push({ label, value });
+            if (!cur.value && value) cur.value = value;
+            if (!cur.label && label) cur.label = label;
           }
-        }
+        });
 
         // 合併日期報名（任一有 v 即視為已報名）
         for (const col of dateColumns) {
@@ -192,10 +200,14 @@ export default async function handler(req, res) {
           return (am - bm) || (ad - bd);
         });
 
+      const info = g.infoSlots
+        .filter(s => s && (s.label || s.value))
+        .map(s => ({ label: s.label, value: s.value }));
+
       results.push({
         sheetName: g.sheetName,
         warehouse: g.warehouse,
-        info: g.info,
+        info,
         registrations,
       });
     }
