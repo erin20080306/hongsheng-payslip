@@ -1,5 +1,13 @@
 import { google } from 'googleapis';
 
+// 解析日期欄位標題，支援「2/16」「3/1」「08/04 (二)」「[08/04 (二)]」等，統一轉為「M/D」
+function parseDateHeader(raw) {
+  const s = (raw || '').toString().replace(/[[\]]/g, '').trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})/);
+  if (!m) return null;
+  return `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}`;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   
@@ -34,23 +42,51 @@ export default async function handler(req, res) {
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     const allSheets = spreadsheet.data.sheets || [];
 
-    // 只篩選「酷澎」或「蝦皮」分頁（排除「報名表單」等）
-    const targetSheets = allSheets.filter(s => {
-      const title = s.properties.title;
-      // 只要「酷澎」或「蝦皮」，排除「報名表單」
-      return (title === '酷澎' || title === '蝦皮');
-    });
+    // 分頁設定（欄位以 A=索引0 換算）
+    // 「蝦皮報班」與「蝦皮」合併輸出（output 同為「蝦皮」），同人依 班別|倉別 合併成一筆
+    const SHEET_CONFIGS = {
+      '酷澎': {
+        output: '酷澎',
+        idColIndex: 6,        // G 身分證
+        nameMatchColIndex: 5, // F 姓名
+        classColIndex: 4,     // E 班別
+        warehouseColIndex: 9, // J 倉別
+        infoColumns: [4, 5, 6, 7, 8, 9], // E~J
+      },
+      '蝦皮': {
+        output: '蝦皮',
+        idColIndex: 14,        // O 身分證
+        nameMatchColIndex: 10, // K 姓名
+        classColIndex: 4,      // E 班別
+        warehouseColIndex: 7,  // H 倉別
+        infoColumns: [4, 5, 6, 7, 8, 9], // E~J
+      },
+      '蝦皮報班': {
+        output: '蝦皮',        // 與「蝦皮」合併
+        idColIndex: 14,        // O 身分證
+        nameMatchColIndex: 9,  // J 姓名
+        classColIndex: 7,      // H 班別
+        warehouseColIndex: 6,  // G 倉別
+        // 顯示欄位 E~J 依序對應「蝦皮報班」的 H,E,F,G,H,I 欄
+        infoColumns: [7, 4, 5, 6, 7, 8],
+      },
+    };
+
+    const targetTitles = Object.keys(SHEET_CONFIGS);
+    const targetSheets = allSheets.filter(s => targetTitles.includes(s.properties.title));
 
     if (targetSheets.length === 0) {
-      return res.status(404).json({ error: '找不到酷澎或蝦皮分頁' });
+      return res.status(404).json({ error: '找不到酷澎、蝦皮或蝦皮報班分頁' });
     }
 
-    const results = [];
+    // 合併用：key = output|班別|倉別
+    const mergedGroups = new Map();
     const debug = [];
 
     for (const sheet of targetSheets) {
       const sheetTitle = sheet.properties.title;
-      
+      const cfg = SHEET_CONFIGS[sheetTitle];
+
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
         range: `'${sheetTitle}'!A:DM`,
@@ -61,153 +97,107 @@ export default async function handler(req, res) {
 
       // 第一列是標題
       const headers = rows[0] || [];
-      
-      // 根據分頁設定欄位對應
-      // 酷澎：F欄=姓名(索引5), G欄=身分證(索引6), E欄=班別(索引4), J欄=倉別(索引9)
-      // 蝦皮：K欄=姓名(索引10), O欄=身分證字號(索引14), E欄=班別(索引4), H欄=倉別(索引7)
-      let idColIndex, nameMatchColIndex, warehouseColIndex, classColIndex, groupKeyColIndex, infoStartCol, infoEndCol;
-      if (sheetTitle === '酷澎') {
-        idColIndex = 6;        // G欄（身分證）
-        nameMatchColIndex = 5; // F欄（姓名）
-        classColIndex = 4;     // E欄（班別）
-        warehouseColIndex = 9; // J欄（倉別）
-        groupKeyColIndex = 9;  // J欄用於分組
-        infoStartCol = 4;      // E欄
-        infoEndCol = 9;        // J欄
-      } else if (sheetTitle === '蝦皮') {
-        idColIndex = 14;        // O欄（身分證字號）
-        nameMatchColIndex = 10; // K欄（姓名）
-        classColIndex = 4;     // E欄（班別）
-        warehouseColIndex = 7; // H欄（倉別）
-        groupKeyColIndex = 7;  // H欄用於分組
-        infoStartCol = 4;      // E欄
-        infoEndCol = 9;        // J欄
-      } else {
-        continue;
-      }
-      
-      // 資訊欄位
+
+      // 資訊欄位（顯示用）
       const infoColumns = [];
-      for (let j = infoStartCol; j <= infoEndCol && j < headers.length; j++) {
+      for (const j of cfg.infoColumns) {
         const h = (headers[j] || '').toString().trim();
-        if (h) {
-          infoColumns.push({ index: j, header: h });
-        }
+        infoColumns.push({ index: j, header: h });
       }
-      
-      // 日期格式的欄位（如 2/16, 2/17, 3/1 等）
+
+      // 日期報名欄位（動態偵測，支援 2/16 與 08/04 (二) 等格式，統一轉為 M/D）
       const dateColumns = [];
-      debug.push({ sheet: sheetTitle, headersCount: headers.length, first15: headers.slice(0, 15), rows: rows.length });
       for (let j = 0; j < headers.length; j++) {
-        const h = (headers[j] || '').toString().trim();
-        // 檢查是否為日期格式 (如 2/16, 2/17, 3/1)
-        if (/^\d{1,2}\/\d{1,2}$/.test(h)) {
-          dateColumns.push({ index: j, header: h });
-        }
+        const norm = parseDateHeader(headers[j]);
+        if (norm) dateColumns.push({ index: j, header: norm });
       }
-      debug.push({ sheet: sheetTitle, dateColumnsCount: dateColumns.length });
-      
+      debug.push({ sheet: sheetTitle, headersCount: headers.length, dateColumnsCount: dateColumns.length });
+
       // 如果沒有日期欄位，跳過這個分頁
       if (dateColumns.length === 0) {
         debug.push({ sheet: sheetTitle, skipped: 'no date columns' });
         continue;
       }
-      
-      // 搜尋姓名，按 E欄(班別) + 倉別欄 分組
-      const groupedRows = new Map(); // key: E欄+倉別欄, value: { rows, registrations }
-      let foundCount = 0;
-      const sampleNames = [];
-      
-      for (let i = 1; i < rows.length && i <= 10; i++) {
-        const row = rows[i];
-        sampleNames.push(row[nameMatchColIndex] || '');
-      }
-      debug.push({ sheet: sheetTitle, idColIndex, nameMatchColIndex, searchValue: matchValue, sampleNames });
-      
+
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        
+
         let matched = false;
         if (idNumber) {
-          // 一般員工：身分證精準匹配 + 姓名精準匹配（雙重驗證）
-          const rowId = (row[idColIndex] || '').toString().trim();
-          const rowName = (row[nameMatchColIndex] || '').toString().trim();
+          // 一般員工：身分證 + 姓名 雙重驗證
+          const rowId = (row[cfg.idColIndex] || '').toString().trim();
+          const rowName = (row[cfg.nameMatchColIndex] || '').toString().trim();
           matched = rowId === idNumber && rowName === name;
         } else {
           // 管理者：只用姓名精準匹配
-          const rowName = (row[nameMatchColIndex] || '').toString().trim();
+          const rowName = (row[cfg.nameMatchColIndex] || '').toString().trim();
           matched = rowName === matchValue;
         }
-        
-        if (matched) {
-          foundCount++;
-          // 取得班別值 (E欄)
-          const classValue = (row[classColIndex] || '').toString().trim();
-          // 取得倉別值
-          const warehouseValue = (row[warehouseColIndex] || '').toString().trim();
-          
-          // 分組 key: E欄(班別) + 倉別欄
-          const groupKey = `${classValue}|${warehouseValue}`;
-          
-          if (!groupedRows.has(groupKey)) {
-            groupedRows.set(groupKey, { 
-              row, 
-              warehouseValue, 
-              classValue,
-              allRegistrations: []
-            });
+        if (!matched) continue;
+
+        const classValue = (row[cfg.classColIndex] || '').toString().trim();
+        const warehouseValue = (row[cfg.warehouseColIndex] || '').toString().trim();
+        const groupKey = `${cfg.output}|${classValue}|${warehouseValue}`;
+
+        if (!mergedGroups.has(groupKey)) {
+          mergedGroups.set(groupKey, {
+            sheetName: cfg.output,
+            warehouse: warehouseValue,
+            classValue,
+            info: [],           // { label, value }
+            dates: new Map(),   // date(M/D) -> { values:Set, registered:bool }
+          });
+        }
+        const g = mergedGroups.get(groupKey);
+
+        // 合併資訊欄位（依 label 去重，保留第一個非空值）
+        for (const col of infoColumns) {
+          const label = col.header;
+          if (!label) continue;
+          const value = (row[col.index] || '').toString().trim();
+          const existing = g.info.find(x => x.label === label);
+          if (existing) {
+            if (!existing.value && value) existing.value = value;
+          } else {
+            g.info.push({ label, value });
           }
-          
-          // 收集該行的日期欄位資料
-          const rowRegistrations = dateColumns.map(col => ({
-            date: col.header,
-            value: (row[col.index] || '').toString().trim(),
-            registered: (row[col.index] || '').toString().toLowerCase().includes('v')
-          }));
-          
-          groupedRows.get(groupKey).allRegistrations.push(rowRegistrations);
+        }
+
+        // 合併日期報名（任一有 v 即視為已報名）
+        for (const col of dateColumns) {
+          const value = (row[col.index] || '').toString().trim();
+          const registered = value.toLowerCase().includes('v');
+          if (!g.dates.has(col.header)) {
+            g.dates.set(col.header, { values: new Set(), registered: false });
+          }
+          const d = g.dates.get(col.header);
+          if (value) d.values.add(value);
+          if (registered) d.registered = true;
         }
       }
+    }
 
-      // 處理分組後的記錄
-      for (const [groupKey, { row: foundRow, warehouseValue, allRegistrations }] of groupedRows) {
-        // 確認姓名欄確實包含搜尋的姓名
-        // 再次確認匹配
-        let recheck = false;
-        if (idNumber) {
-          const rowId = (foundRow[idColIndex] || '').toString().trim();
-          const rowName = (foundRow[nameMatchColIndex] || '').toString().trim();
-          recheck = rowId === idNumber && rowName === name;
-        } else {
-          const rowName = (foundRow[nameMatchColIndex] || '').toString().trim();
-          recheck = rowName === matchValue;
-        }
-        if (!recheck) continue;
-        
-        // E-J 欄資訊
-        const info = infoColumns.map(col => ({
-          label: col.header,
-          value: (foundRow[col.index] || '').toString().trim()
-        }));
-        
-        // 合併所有行的日期欄位資料（如果任一行有 v，則標記為已報名）
-        const mergedRegistrations = dateColumns.map((col, idx) => {
-          const hasRegistered = allRegistrations.some(regs => regs[idx]?.registered);
-          const values = allRegistrations.map(regs => regs[idx]?.value).filter(v => v);
-          return {
-            date: col.header,
-            value: values.join(', ') || '',
-            registered: hasRegistered
-          };
+    // 建立輸出（日期依 月/日 排序）
+    const results = [];
+    for (const g of mergedGroups.values()) {
+      const registrations = [...g.dates.entries()]
+        .map(([date, d]) => ({
+          date,
+          value: [...d.values].join(', '),
+          registered: d.registered,
+        }))
+        .sort((a, b) => {
+          const [am, ad] = a.date.split('/').map(Number);
+          const [bm, bd] = b.date.split('/').map(Number);
+          return (am - bm) || (ad - bd);
         });
 
-        results.push({
-          sheetName: sheetTitle,
-          warehouse: warehouseValue,
-          info: info,
-          registrations: mergedRegistrations
-        });
-      }
+      results.push({
+        sheetName: g.sheetName,
+        warehouse: g.warehouse,
+        info: g.info,
+        registrations,
+      });
     }
 
     if (results.length === 0) {
