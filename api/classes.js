@@ -153,11 +153,11 @@ export default async function handler(req, res) {
 
         const classValue = (row[cfg.classColIndex] || '').toString().trim();
         const warehouseValue = (row[cfg.warehouseColIndex] || '').toString().trim();
-        // 蝦皮家族（蝦皮 + 蝦皮報班）：以「正規化班別」合併（建國晚班≡晚班），跨分頁同班別併為一張，
-        // 不同班別分開顯示；倉別不納入 key（兩分頁倉別欄位/格式不同會造成同班別被誤拆）。
+        // 蝦皮家族（蝦皮 + 蝦皮報班）：同倉別 + 同正規化班別（建國晚班≡晚班）才合併，
+        // 倉別或班別不同都分開顯示；跨分頁同倉同班則併為一張。
         // 其他（酷澎）：維持 班別|倉別 分組
         const groupKey = cfg.mergeByShift
-          ? `${cfg.output}|${normalizeShift(classValue)}`
+          ? `${cfg.output}|${warehouseValue}|${normalizeShift(classValue)}`
           : `${cfg.output}|${classValue}|${warehouseValue}`;
 
         if (!mergedGroups.has(groupKey)) {
