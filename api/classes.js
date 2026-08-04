@@ -104,8 +104,9 @@ export default async function handler(req, res) {
         const h = (headers[j] || '').toString().trim();
         infoColumns.push({ index: j, header: h });
       }
-      // 蝦皮報班優先（合併時覆蓋蝦皮的同位置欄位）
-      const infoPriority = sheetTitle === '蝦皮報班' ? 2 : 1;
+      // 資訊欄位顯示：標題以「蝦皮」E~J 為主，值以「蝦皮報班」對應欄位為主
+      const labelPriority = sheetTitle === '蝦皮' ? 2 : 1;
+      const valuePriority = sheetTitle === '蝦皮報班' ? 2 : 1;
 
       // 日期報名欄位（動態偵測，支援 2/16 與 08/04 (二) 等格式，統一轉為 M/D）
       const dateColumns = [];
@@ -146,28 +147,30 @@ export default async function handler(req, res) {
             sheetName: cfg.output,
             warehouse: warehouseValue,
             classValue,
-            infoSlots: [],      // 依顯示位置 slot -> { label, value, prio }
+            infoSlots: [],      // 依顯示位置 slot -> { label, labelPrio, value, valuePrio }
             dates: new Map(),   // date(M/D) -> { values:Set, registered:bool }
           });
         }
         const g = mergedGroups.get(groupKey);
 
-        // 合併資訊欄位（依「顯示位置」對齊，蝦皮報班優先，避免同標題被覆蓋或漏顯示）
+        // 合併資訊欄位（依「顯示位置」對齊）：標題取蝦皮，值取蝦皮報班，另一方遞補空缺
         infoColumns.forEach((col, slot) => {
           const label = col.header;
           const value = (row[col.index] || '').toString().trim();
-          const cur = g.infoSlots[slot];
+          let cur = g.infoSlots[slot];
           if (!cur) {
-            g.infoSlots[slot] = { label, value, prio: infoPriority };
-          } else if (infoPriority > cur.prio) {
-            g.infoSlots[slot] = {
-              label: label || cur.label,
-              value: value || cur.value,
-              prio: infoPriority,
-            };
-          } else {
-            if (!cur.value && value) cur.value = value;
-            if (!cur.label && label) cur.label = label;
+            cur = { label: '', labelPrio: 0, value: '', valuePrio: 0 };
+            g.infoSlots[slot] = cur;
+          }
+          // 標題：以較高 labelPriority（蝦皮）為主，蝦皮報班僅遞補空缺
+          if (label && (!cur.label || labelPriority > cur.labelPrio)) {
+            cur.label = label;
+            cur.labelPrio = labelPriority;
+          }
+          // 值：以較高 valuePriority（蝦皮報班）為主，蝦皮僅遞補空缺
+          if (value && (!cur.value || valuePriority > cur.valuePrio)) {
+            cur.value = value;
+            cur.valuePrio = valuePriority;
           }
         });
 
